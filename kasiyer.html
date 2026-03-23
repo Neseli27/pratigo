@@ -1090,23 +1090,22 @@
         // ========== TAHMİNİ BEKLEME SÜRESİ HESAPLAMA ==========
         async function ortalamaGuncelle() {
             try {
-                // Basit sorgu: sadece isletmeId, durum JS'te filtrelenir
+                // Tek where, sıralama JS'te
                 const snap = await db.collection('siparisler')
                     .where('isletmeId', '==', isletmeId)
-                    .orderBy('olusturma', 'desc')
-                    .limit(50)
                     .get();
 
                 const sureler = [];
                 snap.forEach(doc => {
                     const d = doc.data();
                     if ((d.durum === 'hazir' || d.durum === 'teslim_edildi') && d.beklemeDk && d.beklemeDk > 0 && d.beklemeDk < 120) {
-                        sureler.push(d.beklemeDk);
+                        sureler.push({ dk: d.beklemeDk, zaman: d.olusturma?.toDate() || new Date(0) });
                     }
                 });
 
-                // Son 20 geçerli süre yeterli
-                const son20 = sureler.slice(0, 20);
+                // En yeniden eskiye sırala, son 20'yi al
+                sureler.sort((a, b) => b.zaman - a.zaman);
+                const son20 = sureler.slice(0, 20).map(s => s.dk);
 
                 if (son20.length < 3) {
                     await db.collection('isletmeler').doc(isletmeId).update({
@@ -1349,23 +1348,23 @@
             const bugun = new Date();
             bugun.setHours(0, 0, 0, 0);
 
-            // Basit sorgu: sadece isletmeId + olusturma filtresi, durum JS'te filtrelenir
+            // Tek where, geri kalan JS'te
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
-                .where('olusturma', '>=', bugun)
-                .orderBy('olusturma', 'desc')
                 .onSnapshot(snap => {
                     const siparisler = [];
                     snap.forEach(doc => {
                         const d = { id: doc.id, ...doc.data() };
-                        if (d.durum === 'hazir' || d.durum === 'teslim_edildi') {
+                        // Bugünkü + tamamlanmış olanları filtrele
+                        if ((d.durum === 'hazir' || d.durum === 'teslim_edildi') && d.olusturma && d.olusturma.toDate() >= bugun) {
                             siparisler.push(d);
                         }
                     });
+                    // Yeniden eskiye sırala
+                    siparisler.sort((a, b) => (b.olusturma?.toDate() || 0) - (a.olusturma?.toDate() || 0));
                     gecmisCiz(siparisler);
                 }, err => {
                     console.error('Geçmiş sorgu hatası:', err);
-                    // Index yoksa hata yakala, boş göster
                     gecmisCiz([]);
                 });
         }
