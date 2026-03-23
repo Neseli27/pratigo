@@ -200,36 +200,94 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        .menu-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .menu-liste {
             padding: 0 16px;
             margin-bottom: 20px;
         }
-        .menu-item {
+        .menu-satir {
             background: #1e293b;
             border-radius: 12px;
-            padding: 16px;
-            text-align: center;
             border: 2px solid #334155;
-            cursor: pointer;
-            transition: all 0.15s;
+            margin-bottom: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
-        .menu-item:active {
-            border-color: #f97316;
-            transform: scale(0.97);
+        .menu-satir.secili {
+            border-color: #22c55e;
         }
-        .menu-item .urun-ad {
+        .menu-satir-ust {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            cursor: pointer;
+        }
+        .menu-satir-sol {
+            flex: 1;
+            min-width: 0;
+        }
+        .menu-satir-sol .urun-ad {
             font-weight: 600;
-            font-size: 0.95rem;
-            margin-bottom: 6px;
+            font-size: 1rem;
+            color: #f8fafc;
+            margin-bottom: 2px;
         }
-        .menu-item .urun-fiyat {
+        .menu-satir-sol .urun-fiyat {
             color: #f97316;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
+        }
+        .menu-satir-sol .aciklama-ikon {
+            display: inline-block;
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-left: 6px;
+            transition: transform 0.2s;
+        }
+        .menu-satir.acik .aciklama-ikon {
+            transform: rotate(180deg);
+        }
+        .btn-ekle {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid #22c55e;
+            background: transparent;
+            color: #22c55e;
+            font-size: 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+        .btn-ekle:active {
+            background: #22c55e;
+            color: #fff;
+            transform: scale(0.9);
+        }
+        .btn-ekle.eklendi {
+            background: #22c55e;
+            color: #fff;
+        }
+        .menu-aciklama {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+        }
+        .menu-aciklama.acik {
+            max-height: 200px;
+        }
+        .menu-aciklama-icerik {
+            padding: 0 16px 14px;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            border-top: 1px solid #334155;
+            padding-top: 10px;
         }
 
         /* SEPET BARI */
@@ -429,7 +487,7 @@
     <!-- MENÜ -->
     <div id="menuAlani">
         <p class="section-title">Menü</p>
-        <div class="menu-grid" id="menuGrid"></div>
+        <div class="menu-liste" id="menuListe"></div>
     </div>
 
     <!-- BOŞ MENÜ -->
@@ -498,9 +556,10 @@
         });
 
         function menuCiz() {
-            const grid = document.getElementById('menuGrid');
-            if (menuVerisi.length === 0) {
-                grid.innerHTML = '';
+            const liste = document.getElementById('menuListe');
+            const aktifMenu = menuVerisi.filter(u => u.aktif !== false);
+            if (aktifMenu.length === 0) {
+                liste.innerHTML = '';
                 document.getElementById('bosMenu').style.display = 'block';
                 document.getElementById('menuAlani').style.display = 'none';
                 return;
@@ -508,12 +567,55 @@
             document.getElementById('bosMenu').style.display = 'none';
             document.getElementById('menuAlani').style.display = 'block';
 
-            grid.innerHTML = menuVerisi.filter(u => u.aktif !== false).map(u => `
-                <div class="menu-item" onclick="sepeteEkle('${u.id}', '${u.ad}', ${u.fiyat})">
-                    <div class="urun-ad">${u.ad}</div>
-                    <div class="urun-fiyat">${u.fiyat} ₺</div>
+            liste.innerHTML = aktifMenu.map(u => {
+                const aciklamaVar = u.aciklama && u.aciklama.trim().length > 0;
+                return `
+                <div class="menu-satir" id="msatir_${u.id}">
+                    <div class="menu-satir-ust">
+                        <div class="menu-satir-sol" onclick="menuAciklamaToggle('${u.id}')">
+                            <div class="urun-ad">
+                                ${u.ad}
+                                ${aciklamaVar ? '<span class="aciklama-ikon">▼</span>' : ''}
+                            </div>
+                            <div class="urun-fiyat">${u.fiyat} ₺</div>
+                        </div>
+                        <button class="btn-ekle" onclick="sepeteEkleTikla(event, '${u.id}', '${u.ad}', ${u.fiyat})">+</button>
+                    </div>
+                    ${aciklamaVar ? `
+                    <div class="menu-aciklama" id="maciklama_${u.id}">
+                        <div class="menu-aciklama-icerik">${u.aciklama}</div>
+                    </div>
+                    ` : ''}
                 </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        function menuAciklamaToggle(id) {
+            const satir = document.getElementById('msatir_' + id);
+            const aciklama = document.getElementById('maciklama_' + id);
+            if (!aciklama) return;
+            satir.classList.toggle('acik');
+            aciklama.classList.toggle('acik');
+        }
+
+        function sepeteEkleTikla(event, id, ad, fiyat) {
+            event.stopPropagation();
+            sepeteEkle(id, ad, fiyat);
+
+            // Yeşil çerçeve efekti
+            const satir = document.getElementById('msatir_' + id);
+            satir.classList.add('secili');
+
+            // Buton efekti
+            const btn = event.currentTarget;
+            btn.classList.add('eklendi');
+            btn.textContent = '✓';
+            setTimeout(() => {
+                satir.classList.remove('secili');
+                btn.classList.remove('eklendi');
+                btn.textContent = '+';
+            }, 600);
         }
 
         // ========== SEPET ==========

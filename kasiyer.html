@@ -637,11 +637,12 @@
     <div class="tab-icerik" id="tab-menu">
         <div class="panel" style="max-width:600px">
             <div class="panel-baslik">📋 Menü Yönetimi</div>
-            <div class="menu-ekle-form">
-                <input type="text" id="yeniUrunAd" placeholder="Ürün Adı">
+            <div class="menu-ekle-form" style="flex-wrap:wrap">
+                <input type="text" id="yeniUrunAd" placeholder="Ürün Adı" style="flex:2;min-width:120px">
                 <input type="number" id="yeniUrunFiyat" placeholder="₺" style="max-width:100px">
                 <button onclick="urunEkle()">+ Ekle</button>
             </div>
+            <textarea id="yeniUrunAciklama" placeholder="Açıklama (isteğe bağlı) — örn: 200gr köfte, patates, içecek dahil" style="width:100%;padding:10px 12px;background:#1e293b;border:2px solid #475569;border-radius:10px;color:#f8fafc;font-size:0.9rem;outline:none;resize:vertical;min-height:50px;margin-bottom:16px;font-family:inherit"></textarea>
             <div id="menuListesi"></div>
         </div>
     </div>
@@ -971,11 +972,13 @@
         async function urunEkle() {
             const ad = document.getElementById('yeniUrunAd').value.trim();
             const fiyat = parseFloat(document.getElementById('yeniUrunFiyat').value);
+            const aciklama = document.getElementById('yeniUrunAciklama').value.trim();
             if (!ad || !fiyat) return alert('Ürün adı ve fiyat girin');
 
             await db.collection('isletmeler').doc(isletmeId).collection('menu').add({
                 ad: ad,
                 fiyat: fiyat,
+                aciklama: aciklama,
                 aktif: true,
                 sira: menuVerisi.length,
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
@@ -983,44 +986,51 @@
 
             document.getElementById('yeniUrunAd').value = '';
             document.getElementById('yeniUrunFiyat').value = '';
+            document.getElementById('yeniUrunAciklama').value = '';
         }
 
         function menuListeCiz() {
-            document.getElementById('menuListesi').innerHTML = menuVerisi.map(u => `
-                <div class="menu-liste-item" id="menu_item_${u.id}" style="${u.aktif === false ? 'opacity:0.5' : ''}">
-                    <div id="menu_goster_${u.id}">
-                        <span class="ad">${u.ad}</span>
-                        <span class="fiyat" style="margin-left:12px">${u.fiyat} ₺</span>
-                    </div>
-                    <div id="menu_duzenle_${u.id}" style="display:none;width:100%">
-                        <div class="duzenle-form">
-                            <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${u.ad}">
-                            <input class="duzenle-input fiyat-input" id="edit_fiyat_${u.id}" type="number" value="${u.fiyat}">
-                            <button class="btn-duzenle-kaydet" onclick="urunKaydet('${u.id}')">✓</button>
-                            <button class="btn-duzenle-iptal" onclick="urunDuzenleIptal('${u.id}')">✕</button>
+            document.getElementById('menuListesi').innerHTML = menuVerisi.map(u => {
+                const aciklamaVar = u.aciklama && u.aciklama.trim().length > 0;
+                return `
+                <div class="menu-liste-item" id="menu_item_${u.id}" style="${u.aktif === false ? 'opacity:0.5' : ''};flex-wrap:wrap">
+                    <div id="menu_goster_${u.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <span class="ad">${u.ad}</span>
+                            <span class="fiyat" style="margin-left:12px">${u.fiyat} ₺</span>
+                            ${aciklamaVar ? `<div style="color:#64748b;font-size:0.8rem;margin-top:4px">${u.aciklama}</div>` : '<div style="color:#475569;font-size:0.75rem;margin-top:4px;font-style:italic">Açıklama yok</div>'}
+                        </div>
+                        <div class="islemler" id="menu_btn_${u.id}">
+                            <button class="btn-duzenle" onclick="urunDuzenle('${u.id}')">✏️</button>
+                            <button class="btn-toggle ${u.aktif === false ? 'pasif' : ''}" onclick="urunToggle('${u.id}', ${u.aktif !== false})">
+                                ${u.aktif !== false ? '✓ Aktif' : '✗ Pasif'}
+                            </button>
+                            <button class="btn-sil" onclick="urunSil('${u.id}')">🗑️</button>
                         </div>
                     </div>
-                    <div class="islemler" id="menu_btn_${u.id}">
-                        <button class="btn-duzenle" onclick="urunDuzenle('${u.id}')">✏️</button>
-                        <button class="btn-toggle ${u.aktif === false ? 'pasif' : ''}" onclick="urunToggle('${u.id}', ${u.aktif !== false})">
-                            ${u.aktif !== false ? '✓ Aktif' : '✗ Pasif'}
-                        </button>
-                        <button class="btn-sil" onclick="urunSil('${u.id}')">🗑️</button>
+                    <div id="menu_duzenle_${u.id}" style="display:none;width:100%">
+                        <div class="duzenle-form" style="flex-wrap:wrap">
+                            <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${u.ad}">
+                            <input class="duzenle-input fiyat-input" id="edit_fiyat_${u.id}" type="number" value="${u.fiyat}">
+                        </div>
+                        <textarea class="duzenle-input" id="edit_aciklama_${u.id}" placeholder="Açıklama (isteğe bağlı)" style="width:100%;margin-top:8px;min-height:45px;resize:vertical;font-family:inherit">${u.aciklama || ''}</textarea>
+                        <div style="display:flex;gap:8px;margin-top:8px">
+                            <button class="btn-duzenle-kaydet" onclick="urunKaydet('${u.id}')">✓ Kaydet</button>
+                            <button class="btn-duzenle-iptal" onclick="urunDuzenleIptal('${u.id}')">✕ İptal</button>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function urunDuzenle(id) {
             document.getElementById('menu_goster_' + id).style.display = 'none';
-            document.getElementById('menu_btn_' + id).style.display = 'none';
             document.getElementById('menu_duzenle_' + id).style.display = 'block';
             document.getElementById('menu_item_' + id).classList.add('duzenle-modu');
         }
 
         function urunDuzenleIptal(id) {
-            document.getElementById('menu_goster_' + id).style.display = '';
-            document.getElementById('menu_btn_' + id).style.display = 'flex';
+            document.getElementById('menu_goster_' + id).style.display = 'flex';
             document.getElementById('menu_duzenle_' + id).style.display = 'none';
             document.getElementById('menu_item_' + id).classList.remove('duzenle-modu');
         }
@@ -1028,11 +1038,13 @@
         async function urunKaydet(id) {
             const yeniAd = document.getElementById('edit_ad_' + id).value.trim();
             const yeniFiyat = parseFloat(document.getElementById('edit_fiyat_' + id).value);
+            const yeniAciklama = document.getElementById('edit_aciklama_' + id).value.trim();
             if (!yeniAd || !yeniFiyat) return alert('Ad ve fiyat boş olamaz');
 
             await db.collection('isletmeler').doc(isletmeId).collection('menu').doc(id).update({
                 ad: yeniAd,
-                fiyat: yeniFiyat
+                fiyat: yeniFiyat,
+                aciklama: yeniAciklama
             });
         }
 
