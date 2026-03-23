@@ -7,14 +7,21 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon-192.png">
     <meta name="theme-color" content="#f97316">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { background: #060a12; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #0f172a;
             color: #f8fafc;
             min-height: 100vh;
             padding-bottom: 40px;
+            max-width: 1100px;
+            margin: 0 auto;
+            box-shadow: 0 0 60px rgba(0,0,0,0.5);
         }
 
         /* ÜST ALAN */
@@ -267,5 +274,6 @@
             window.location.href = '/musteri?oturum=' + oturumRef.id + '&isletme=' + isletmeId + '&avm=' + avmId;
         }
     </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
 </body>
 </html>
