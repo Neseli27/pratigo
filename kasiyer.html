@@ -694,6 +694,10 @@
                     <input type="text" id="profilAd" placeholder="İşletme adı">
                     <label>Kısa Tanıtım</label>
                     <textarea id="profilTanitim" placeholder="İşletme hakkında kısa bilgi" style="width:100%;padding:10px;background:#1e293b;border:2px solid #475569;border-radius:10px;color:#f8fafc;font-size:0.9rem;outline:none;resize:vertical;min-height:50px;font-family:inherit;margin-bottom:12px"></textarea>
+                    <label>Yetkili Ad Soyad</label>
+                    <input type="text" id="profilYetkili" placeholder="Sorumlu kişi adı">
+                    <label>Yetkili Telefon</label>
+                    <input type="tel" id="profilTelefon" placeholder="05xx xxx xx xx">
                     <label>Şifre Değiştir</label>
                     <input type="password" id="profilSifre" placeholder="Yeni şifre (boş bırakın değişmesin)">
                     <button class="btn-kaydet" onclick="profilKaydet()">💾 Kaydet</button>
@@ -779,6 +783,8 @@
                 document.getElementById('topIsletmeAdi').textContent = isletmeData.ad || '';
                 document.getElementById('profilAd').value = isletmeData.ad || '';
                 document.getElementById('profilTanitim').value = isletmeData.tanitim || '';
+                document.getElementById('profilYetkili').value = isletmeData.yetkili || '';
+                document.getElementById('profilTelefon').value = isletmeData.telefon || '';
                 saatlerFormCiz(isletmeData.calismaSaatleri);
                 qrOlustur();
             });
@@ -1111,9 +1117,11 @@
             const ad = document.getElementById('profilAd').value.trim();
             const sifre = document.getElementById('profilSifre').value.trim();
             const tanitim = document.getElementById('profilTanitim').value.trim();
+            const yetkili = document.getElementById('profilYetkili').value.trim();
+            const telefon = document.getElementById('profilTelefon').value.trim();
             if (!ad) return alert('İşletme adını girin');
 
-            const guncelleme = { ad: ad, tanitim: tanitim };
+            const guncelleme = { ad: ad, tanitim: tanitim, yetkili: yetkili, telefon: telefon };
             if (sifre) guncelleme.sifre = sifre;
 
             await db.collection('isletmeler').doc(isletmeId).update(guncelleme);

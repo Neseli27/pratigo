@@ -163,6 +163,11 @@
             </div>
 
             <div class="form-alan">
+                <label>Yetkili Ad Soyad (isteğe bağlı)</label>
+                <input type="text" id="yetkili" placeholder="Örn: Ahmet Yılmaz">
+            </div>
+
+            <div class="form-alan">
                 <label>Yetkili Telefon (isteğe bağlı)</label>
                 <input type="tel" id="telefon" placeholder="05xx xxx xx xx">
             </div>
@@ -209,6 +214,7 @@
             const ad = document.getElementById('isletmeAdi').value.trim();
             const sifre = document.getElementById('sifre').value.trim();
             const tanitim = document.getElementById('tanitim').value.trim();
+            const yetkili = document.getElementById('yetkili').value.trim();
             const telefon = document.getElementById('telefon').value.trim();
 
             if (!ad) return mesajGoster('İşletme adını girin', 'hata');
@@ -240,6 +246,7 @@
                 avmId: AVM_ID,
                 avmAdi: AVM_ADI,
                 tanitim: tanitim,
+                yetkili: yetkili,
                 telefon: telefon,
                 calismaSaatleri: calismaSaatleri,
                 gunOzel: {},
