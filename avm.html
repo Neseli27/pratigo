@@ -197,7 +197,10 @@
                 document.getElementById('yukleme').style.display = 'none';
 
                 const isletmeler = [];
-                snap.forEach(doc => isletmeler.push({ id: doc.id, ...doc.data() }));
+                snap.forEach(doc => {
+                    const data = { id: doc.id, ...doc.data() };
+                    if (data.durum !== 'askida') isletmeler.push(data);
+                });
 
                 if (isletmeler.length === 0) {
                     document.getElementById('bosMesaj').style.display = 'block';

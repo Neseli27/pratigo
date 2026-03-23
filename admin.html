@@ -47,6 +47,7 @@
         .btn-turuncu { padding:10px 20px; background:#f97316; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; }
         .btn-mavi { padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
         .btn-kirmizi { padding:8px 16px; background:#dc2626; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
+        .btn-yesil { padding:8px 16px; background:#16a34a; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
         .btn-gri { padding:8px 16px; background:#475569; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
 
         /* TABLO */
@@ -56,6 +57,7 @@
         .tablo tr:hover td { background:#111827; }
         .badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; }
         .badge-yesil { background:#14532d; color:#22c55e; }
+        .badge-kirmizi { background:#450a0a; color:#ef4444; }
         .badge-mavi { background:#172554; color:#3b82f6; }
 
         /* STAT KARTLARI */
@@ -90,6 +92,10 @@
         .isletme-kart .ad { font-weight:700; font-size:0.95rem; color:#f8fafc; }
         .isletme-kart .avm-adi { font-size:0.75rem; color:#64748b; margin-top:4px; }
         .isletme-kart .kod-sayi { font-size:0.8rem; color:#f97316; margin-top:6px; font-weight:600; }
+        .isletme-kart.askida { opacity:0.5; border-color:#dc2626; }
+        .isletme-kart .durum-badge { font-size:0.7rem; margin-top:6px; padding:2px 8px; border-radius:12px; }
+        .isletme-kart .durum-badge.aktif-b { background:#14532d; color:#22c55e; }
+        .isletme-kart .durum-badge.askida-b { background:#450a0a; color:#ef4444; }
 
         /* İŞLETME DETAY MODAL */
         .detay-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
@@ -191,10 +197,34 @@
         <!-- İŞLETMELER -->
         <div class="sayfa" id="sayfa-isletmeler">
             <div class="sayfa-baslik">🍽️ İşletmeler</div>
+
+            <!-- İŞLETME EKLE -->
+            <div class="panel">
+                <div class="panel-baslik">+ Yeni İşletme Ekle</div>
+                <div class="form-satir">
+                    <select id="yeniIsletmeAvm"><option value="">AVM Seçin *</option></select>
+                    <input type="text" id="yeniIsletmeAd" placeholder="İşletme Adı *">
+                </div>
+                <div class="form-satir">
+                    <input type="text" id="yeniIsletmeYetkili" placeholder="Yetkili Ad Soyad">
+                    <input type="tel" id="yeniIsletmeTelefon" placeholder="Telefon">
+                </div>
+                <div class="form-satir">
+                    <input type="password" id="yeniIsletmeSifre" placeholder="Şifre * (min 4 karakter)">
+                    <button class="btn-turuncu" onclick="isletmeEkle()">+ Ekle</button>
+                </div>
+            </div>
+
+            <!-- İŞLETME LİSTESİ -->
             <div class="panel">
                 <div class="form-satir">
                     <select id="isletmeFiltre" onchange="isletmelerCiz()">
                         <option value="hepsi">Tüm AVM'ler</option>
+                    </select>
+                    <select id="isletmeDurumFiltre" onchange="isletmelerCiz()">
+                        <option value="hepsi">Tüm Durumlar</option>
+                        <option value="aktif">Aktif</option>
+                        <option value="askida">Askıda</option>
                     </select>
                 </div>
                 <div class="isletme-grid" id="isletmeGrid"></div>
@@ -217,9 +247,20 @@
                 <button class="btn-kirmizi" onclick="oturumTemizle()">🧹 Eski Oturumları Temizle</button>
                 <span id="temizleSonuc" style="margin-left:12px;color:#22c55e;font-size:0.85rem"></span>
             </div>
+            <div class="panel" style="border-color:#dc2626">
+                <div class="panel-baslik" style="color:#ef4444">⚠️ Tehlikeli Bölge</div>
+                <p style="color:#64748b;font-size:0.85rem;margin-bottom:12px">Tüm AVM ve İşletme verilerini siler. Bu işlem geri alınamaz!</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn-kirmizi" onclick="tumIsletmeleriSil()">🗑️ Tüm İşletmeleri Sil</button>
+                    <button class="btn-kirmizi" onclick="tumAvmleriSil()">🗑️ Tüm AVM'leri Sil</button>
+                    <button class="btn-kirmizi" onclick="tumOturumlariSil()">🗑️ Tüm Oturumları Sil</button>
+                    <button class="btn-kirmizi" onclick="tumSiparisleriSil()">🗑️ Tüm Siparişleri Sil</button>
+                </div>
+                <span id="silmeSonuc" style="display:block;margin-top:8px;color:#fbbf24;font-size:0.85rem"></span>
+            </div>
             <div class="panel">
                 <div class="panel-baslik">Sistem Bilgisi</div>
-                <p style="color:#64748b;font-size:0.85rem">PRATİGO v7 — Firebase + Vercel</p>
+                <p style="color:#64748b;font-size:0.85rem">PRATİGO v8 — Firebase + Vercel</p>
                 <p style="color:#334155;font-size:0.8rem;margin-top:4px">© 2026 PRATİGO</p>
             </div>
         </div>
@@ -227,12 +268,50 @@
 
     <!-- İŞLETME DETAY MODAL -->
     <div class="detay-overlay" id="detayOverlay" onclick="if(event.target===this)this.style.display='none'">
-        <div class="detay-kutu">
+        <div class="detay-kutu" style="max-width:420px">
             <div class="baslik" id="detayBaslik"></div>
-            <div id="detayIcerik"></div>
-            <div class="detay-butonlar">
-                <button class="btn-mavi" onclick="detayQrGoster()">📱 QR Kod</button>
-                <button class="btn-gri" onclick="document.getElementById('detayOverlay').style.display='none'">Kapat</button>
+
+            <!-- GÖRÜNTÜLEME MODU -->
+            <div id="detayGoster">
+                <div id="detayIcerik"></div>
+                <div class="detay-butonlar" style="flex-wrap:wrap">
+                    <button class="btn-mavi" onclick="detayQrGoster()">📱 QR</button>
+                    <button class="btn-turuncu" onclick="duzenlemeModuAc()">✏️ Düzenle</button>
+                    <button id="btnAskiya" class="btn-gri" onclick="isletmeAskiya()">⏸️ Askıya Al</button>
+                    <button class="btn-kirmizi" onclick="isletmeAdminSil()">🗑️ Sil</button>
+                </div>
+            </div>
+
+            <!-- DÜZENLEME MODU -->
+            <div id="detayDuzenle" style="display:none">
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">İşletme Adı</label>
+                    <input type="text" id="editAd" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Yetkili</label>
+                    <input type="text" id="editYetkili" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Telefon</label>
+                    <input type="tel" id="editTelefon" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Tanıtım</label>
+                    <textarea id="editTanitim" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none;min-height:50px;resize:vertical;font-family:inherit"></textarea>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">AVM</label>
+                    <select id="editAvm" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none"></select>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Şifre Değiştir (boş bırakılırsa değişmez)</label>
+                    <input type="password" id="editSifre" placeholder="Yeni şifre" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none">
+                </div>
+                <div class="detay-butonlar">
+                    <button class="btn-turuncu" onclick="isletmeDuzenleKaydet()" style="flex:2">💾 Kaydet</button>
+                    <button class="btn-gri" onclick="duzenlemeModuKapat()">İptal</button>
+                </div>
             </div>
         </div>
     </div>
@@ -459,11 +538,48 @@
             await db.collection('avmler').doc(id).delete();
         }
 
+        // ========== İŞLETME EKLE (ADMİN) ==========
+        async function isletmeEkle() {
+            const avmId = document.getElementById('yeniIsletmeAvm').value;
+            const ad = document.getElementById('yeniIsletmeAd').value.trim();
+            const yetkili = document.getElementById('yeniIsletmeYetkili').value.trim();
+            const telefon = document.getElementById('yeniIsletmeTelefon').value.trim();
+            const sifre = document.getElementById('yeniIsletmeSifre').value.trim();
+
+            if (!avmId) return alert('AVM seçin');
+            if (!ad) return alert('İşletme adı girin');
+            if (!sifre || sifre.length < 4) return alert('Şifre en az 4 karakter olmalı');
+
+            const avm = tumAvmler.find(a => a.id === avmId);
+            const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+            const calismaSaatleri = {};
+            gunler.forEach(g => { calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false }; });
+
+            await db.collection('isletmeler').add({
+                ad: ad, sifre: sifre, avmId: avmId, avmAdi: avm ? avm.ad : '',
+                yetkili: yetkili, telefon: telefon, tanitim: '',
+                calismaSaatleri: calismaSaatleri, gunOzel: {},
+                durum: 'aktif',
+                olusturma: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            document.getElementById('yeniIsletmeAd').value = '';
+            document.getElementById('yeniIsletmeYetkili').value = '';
+            document.getElementById('yeniIsletmeTelefon').value = '';
+            document.getElementById('yeniIsletmeSifre').value = '';
+            alert(ad + ' eklendi');
+        }
+
         // ========== İŞLETMELER (KART) ==========
         function isletmelerCiz() {
             const filtre = document.getElementById('isletmeFiltre').value;
+            const durumFiltre = document.getElementById('isletmeDurumFiltre').value;
             let liste = tumIsletmeler;
             if (filtre !== 'hepsi') liste = liste.filter(i => i.avmId === filtre);
+            if (durumFiltre !== 'hepsi') {
+                if (durumFiltre === 'askida') liste = liste.filter(i => i.durum === 'askida');
+                else liste = liste.filter(i => i.durum !== 'askida');
+            }
 
             const grid = document.getElementById('isletmeGrid');
             if (liste.length === 0) {
@@ -474,15 +590,18 @@
             grid.innerHTML = liste.map(i => {
                 const harf = (i.ad || '?').charAt(0).toUpperCase();
                 const avm = tumAvmler.find(a => a.id === i.avmId);
+                const askida = i.durum === 'askida';
                 return `
-                <div class="isletme-kart" onclick="isletmeDetayAc('${i.id}')">
+                <div class="isletme-kart ${askida ? 'askida' : ''}" onclick="isletmeDetayAc('${i.id}')">
                     <div class="ikon">${harf}</div>
                     <div class="ad">${i.ad}</div>
                     <div class="avm-adi">${avm ? avm.ad : ''}</div>
+                    <span class="durum-badge ${askida ? 'askida-b' : 'aktif-b'}">${askida ? 'Askıda' : 'Aktif'}</span>
                 </div>`;
             }).join('');
         }
 
+        // ========== İŞLETME DETAY ==========
         function isletmeDetayAc(id) {
             seciliDetayId = id;
             const i = tumIsletmeler.find(x => x.id === id);
@@ -490,15 +609,20 @@
 
             const avm = tumAvmler.find(a => a.id === i.avmId);
             const kayitTarih = i.olusturma ? new Date(i.olusturma.toDate()).toLocaleDateString('tr-TR') : '-';
+            const askida = i.durum === 'askida';
 
             document.getElementById('detayBaslik').textContent = i.ad;
             document.getElementById('detayIcerik').innerHTML = `
+                <div class="detay-satir">
+                    <span class="label">Durum</span>
+                    <span class="value"><span class="badge ${askida ? 'badge-kirmizi' : 'badge-yesil'}" style="font-size:0.85rem">${askida ? '⏸️ Askıda' : '✅ Aktif'}</span></span>
+                </div>
                 <div class="detay-satir">
                     <span class="label">AVM</span>
                     <span class="value">${avm ? avm.ad : '-'}</span>
                 </div>
                 <div class="detay-satir">
-                    <span class="label">Yetkili / Sorumlu</span>
+                    <span class="label">Yetkili</span>
                     <span class="value">${i.yetkili || 'Belirtilmemiş'}</span>
                 </div>
                 <div class="detay-satir">
@@ -510,11 +634,110 @@
                     <span class="value" style="font-size:0.85rem;color:#94a3b8">${i.tanitim || '-'}</span>
                 </div>
                 <div class="detay-satir">
-                    <span class="label">Kayıt Tarihi</span>
+                    <span class="label">Kayıt</span>
                     <span class="value" style="color:#64748b">${kayitTarih}</span>
                 </div>
             `;
+
+            // Askıya al/aktifleştir buton durumu
+            const btnAskiya = document.getElementById('btnAskiya');
+            if (askida) {
+                btnAskiya.textContent = '▶️ Aktifleştir';
+                btnAskiya.className = 'btn-yesil';
+                btnAskiya.style = '';
+            } else {
+                btnAskiya.textContent = '⏸️ Askıya Al';
+                btnAskiya.className = 'btn-gri';
+                btnAskiya.style = '';
+            }
+
+            document.getElementById('detayGoster').style.display = 'block';
+            document.getElementById('detayDuzenle').style.display = 'none';
             document.getElementById('detayOverlay').style.display = 'flex';
+        }
+
+        // ========== DÜZENLEME MODU ==========
+        function duzenlemeModuAc() {
+            const i = tumIsletmeler.find(x => x.id === seciliDetayId);
+            if (!i) return;
+
+            document.getElementById('editAd').value = i.ad || '';
+            document.getElementById('editYetkili').value = i.yetkili || '';
+            document.getElementById('editTelefon').value = i.telefon || '';
+            document.getElementById('editTanitim').value = i.tanitim || '';
+            document.getElementById('editSifre').value = '';
+
+            // AVM select
+            document.getElementById('editAvm').innerHTML = tumAvmler.map(a =>
+                `<option value="${a.id}" ${a.id === i.avmId ? 'selected' : ''}>${a.ad}</option>`
+            ).join('');
+
+            document.getElementById('detayGoster').style.display = 'none';
+            document.getElementById('detayDuzenle').style.display = 'block';
+        }
+
+        function duzenlemeModuKapat() {
+            document.getElementById('detayGoster').style.display = 'block';
+            document.getElementById('detayDuzenle').style.display = 'none';
+        }
+
+        async function isletmeDuzenleKaydet() {
+            const ad = document.getElementById('editAd').value.trim();
+            if (!ad) return alert('İşletme adı boş olamaz');
+
+            const avmId = document.getElementById('editAvm').value;
+            const avm = tumAvmler.find(a => a.id === avmId);
+
+            const guncelleme = {
+                ad: ad,
+                yetkili: document.getElementById('editYetkili').value.trim(),
+                telefon: document.getElementById('editTelefon').value.trim(),
+                tanitim: document.getElementById('editTanitim').value.trim(),
+                avmId: avmId,
+                avmAdi: avm ? avm.ad : ''
+            };
+
+            const sifre = document.getElementById('editSifre').value.trim();
+            if (sifre) {
+                if (sifre.length < 4) return alert('Şifre en az 4 karakter olmalı');
+                guncelleme.sifre = sifre;
+            }
+
+            await db.collection('isletmeler').doc(seciliDetayId).update(guncelleme);
+            document.getElementById('detayOverlay').style.display = 'none';
+            alert(ad + ' güncellendi');
+        }
+
+        // ========== ASKIYA AL / AKTİFLEŞTİR ==========
+        async function isletmeAskiya() {
+            const i = tumIsletmeler.find(x => x.id === seciliDetayId);
+            if (!i) return;
+
+            const yeniDurum = i.durum === 'askida' ? 'aktif' : 'askida';
+            const mesaj = yeniDurum === 'askida'
+                ? i.ad + ' askıya alınacak. Müşteriler bu işletmeyi göremeyecek. Emin misiniz?'
+                : i.ad + ' tekrar aktifleştirilecek. Emin misiniz?';
+
+            if (!confirm(mesaj)) return;
+            await db.collection('isletmeler').doc(seciliDetayId).update({ durum: yeniDurum });
+            document.getElementById('detayOverlay').style.display = 'none';
+        }
+
+        // ========== İŞLETME SİL ==========
+        async function isletmeAdminSil() {
+            const i = tumIsletmeler.find(x => x.id === seciliDetayId);
+            if (!i) return;
+            if (!confirm(i.ad + ' tamamen silinecek. Menüsü dahil tüm verileri kaybolacak. Emin misiniz?')) return;
+            if (!confirm('Son kez onaylayın: ' + i.ad + ' SİLİNSİN Mİ?')) return;
+
+            // Menü alt koleksiyonunu sil
+            const menuSnap = await db.collection('isletmeler').doc(seciliDetayId).collection('menu').get();
+            const batch = db.batch();
+            menuSnap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+
+            await db.collection('isletmeler').doc(seciliDetayId).delete();
+            document.getElementById('detayOverlay').style.display = 'none';
         }
 
         function detayQrGoster() {
@@ -530,7 +753,10 @@
 
         // ========== FİLTRELER ==========
         function filtreleriGuncelle() {
-            document.getElementById('isletmeFiltre').innerHTML = '<option value="hepsi">Tüm AVM\'ler</option>' +
+            const avmOptions = '<option value="hepsi">Tüm AVM\'ler</option>' +
+                tumAvmler.map(a => `<option value="${a.id}">${a.ad}</option>`).join('');
+            document.getElementById('isletmeFiltre').innerHTML = avmOptions;
+            document.getElementById('yeniIsletmeAvm').innerHTML = '<option value="">AVM Seçin *</option>' + 
                 tumAvmler.map(a => `<option value="${a.id}">${a.ad}</option>`).join('');
         }
 
@@ -549,13 +775,63 @@
                 .where('aktif', '==', true)
                 .where('olusturma', '<', ikiSaatOnce)
                 .get();
-
             let sayac = 0;
             const batch = db.batch();
             snap.forEach(doc => { batch.update(doc.ref, { aktif: false }); sayac++; });
             await batch.commit();
             document.getElementById('temizleSonuc').textContent = sayac + ' oturum kapatıldı';
             setTimeout(() => document.getElementById('temizleSonuc').textContent = '', 3000);
+        }
+
+        // ========== TEHLİKELİ BÖLGE ==========
+        async function koleksiyonSil(koleksiyon) {
+            let sayac = 0;
+            let snap = await db.collection(koleksiyon).limit(400).get();
+            while (!snap.empty) {
+                const batch = db.batch();
+                snap.forEach(doc => { batch.delete(doc.ref); sayac++; });
+                await batch.commit();
+                snap = await db.collection(koleksiyon).limit(400).get();
+            }
+            return sayac;
+        }
+
+        async function tumIsletmeleriSil() {
+            if (!confirm('TÜM İŞLETMELER ve MENÜLERİ silinecek. Emin misiniz?')) return;
+            if (!confirm('Bu işlem geri alınamaz! DEVAM?')) return;
+
+            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
+            // Önce her işletmenin menüsünü sil
+            for (const i of tumIsletmeler) {
+                const menuSnap = await db.collection('isletmeler').doc(i.id).collection('menu').get();
+                const batch = db.batch();
+                menuSnap.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+            }
+            const sayac = await koleksiyonSil('isletmeler');
+            document.getElementById('silmeSonuc').textContent = sayac + ' işletme silindi';
+        }
+
+        async function tumAvmleriSil() {
+            if (tumIsletmeler.length > 0) return alert('Önce tüm işletmeleri silin');
+            if (!confirm('TÜM AVM\'LER silinecek. Emin misiniz?')) return;
+            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
+            const sayac = await koleksiyonSil('avmler');
+            document.getElementById('silmeSonuc').textContent = sayac + ' AVM silindi';
+        }
+
+        async function tumOturumlariSil() {
+            if (!confirm('TÜM OTURUMLAR silinecek. Emin misiniz?')) return;
+            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
+            const sayac = await koleksiyonSil('oturumlar');
+            document.getElementById('silmeSonuc').textContent = sayac + ' oturum silindi';
+        }
+
+        async function tumSiparisleriSil() {
+            if (!confirm('TÜM SİPARİŞLER silinecek. Emin misiniz?')) return;
+            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
+            const sayac = await koleksiyonSil('siparisler');
+            document.getElementById('silmeSonuc').textContent = sayac + ' sipariş silindi';
         }
     </script>
 </body>
