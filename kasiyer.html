@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>PRATİGO - İşletme Paneli</title>
+    <link rel="icon" type="image/png" href="/icon-192.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -567,7 +568,7 @@
             <input type="text" id="girisIsletmeAdi" placeholder="İşletme Adı">
             <input type="password" id="girisSifre" placeholder="Şifre">
             <button class="btn-giris" onclick="girisYap()">Giriş Yap</button>
-            <button class="btn-kayit" onclick="kayitOl()">Yeni İşletme Kayıt</button>
+            <a href="/kayit" class="btn-kayit" style="display:block;text-align:center;text-decoration:none;margin-top:12px">Yeni İşletme Kayıt →</a>
             <p class="giris-hata" id="girisHata"></p>
         </div>
     </div>
@@ -580,9 +581,10 @@
 
     <!-- SEKMELER -->
     <div class="tabs">
-        <button class="tab-btn aktif" onclick="sekmeAc('kasa')">🏪 Kasa & Mutfak</button>
+        <button class="tab-btn aktif" onclick="sekmeAc('kasa')">🏪 Kasa</button>
         <button class="tab-btn" onclick="sekmeAc('menu')">📋 Menü</button>
-        <button class="tab-btn" onclick="sekmeAc('profil')">⚙️ Profil & QR</button>
+        <button class="tab-btn" onclick="sekmeAc('gecmis')">📊 Geçmiş</button>
+        <button class="tab-btn" onclick="sekmeAc('ayarlar')">⚙️ Ayarlar</button>
     </div>
 
     <!-- SEKME 1: KASA & MUTFAK -->
@@ -647,9 +649,34 @@
         </div>
     </div>
 
-    <!-- SEKME 3: PROFİL & QR -->
-    <div class="tab-icerik" id="tab-profil">
-        <div class="profil-alan">
+    <!-- SEKME 3: GEÇMİŞ -->
+    <div class="tab-icerik" id="tab-gecmis">
+        <div class="panel" style="max-width:700px">
+            <div class="panel-baslik">📊 Bugünün Özeti</div>
+            <div id="gunlukOzet" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+                <div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:14px;text-align:center">
+                    <div style="color:#64748b;font-size:0.8rem">Sipariş</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:#f97316" id="ozetSiparis">0</div>
+                </div>
+                <div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:14px;text-align:center">
+                    <div style="color:#64748b;font-size:0.8rem">Ciro</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:#22c55e" id="ozetCiro">0 ₺</div>
+                </div>
+                <div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:14px;text-align:center">
+                    <div style="color:#64748b;font-size:0.8rem">Ortalama</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:#3b82f6" id="ozetOrtalama">0 ₺</div>
+                </div>
+            </div>
+            <div class="panel-baslik">📋 Tamamlanan Siparişler</div>
+            <div id="gecmisListesi">
+                <div class="bos-kuyruk">Henüz tamamlanan sipariş yok</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEKME 4: AYARLAR -->
+    <div class="tab-icerik" id="tab-ayarlar">
+        <div class="profil-alan" style="max-width:600px">
             <div class="panel">
                 <div class="panel-baslik">📱 QR Kodunuz</div>
                 <div class="qr-kutu">
@@ -659,15 +686,41 @@
                     <button class="btn-qr-indir" onclick="qrIndir()">📥 QR Kodu İndir</button>
                 </div>
             </div>
+
             <div class="panel" style="margin-top:16px">
                 <div class="panel-baslik">⚙️ İşletme Bilgileri</div>
                 <div class="profil-form">
                     <label>İşletme Adı</label>
                     <input type="text" id="profilAd" placeholder="İşletme adı">
+                    <label>Kısa Tanıtım</label>
+                    <textarea id="profilTanitim" placeholder="İşletme hakkında kısa bilgi" style="width:100%;padding:10px;background:#1e293b;border:2px solid #475569;border-radius:10px;color:#f8fafc;font-size:0.9rem;outline:none;resize:vertical;min-height:50px;font-family:inherit;margin-bottom:12px"></textarea>
                     <label>Şifre Değiştir</label>
                     <input type="password" id="profilSifre" placeholder="Yeni şifre (boş bırakın değişmesin)">
                     <button class="btn-kaydet" onclick="profilKaydet()">💾 Kaydet</button>
                 </div>
+            </div>
+
+            <div class="panel" style="margin-top:16px">
+                <div class="panel-baslik">🕐 Çalışma Saatleri</div>
+                <div id="saatlerForm" style="font-size:0.9rem">
+                </div>
+                <button class="btn-kaydet" onclick="saatleriKaydet()" style="margin-top:12px">💾 Saatleri Kaydet</button>
+                <div style="margin-top:16px;border-top:1px solid #334155;padding-top:16px">
+                    <div class="panel-baslik" style="font-size:0.9rem">📅 Bugüne Özel Değişiklik</div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <input type="time" id="ozelAcilis" value="10:00" style="padding:8px;background:#0f172a;border:2px solid #475569;border-radius:8px;color:#f8fafc;outline:none">
+                        <span style="color:#64748b">-</span>
+                        <input type="time" id="ozelKapanis" value="22:00" style="padding:8px;background:#0f172a;border:2px solid #475569;border-radius:8px;color:#f8fafc;outline:none">
+                        <label style="color:#94a3b8;display:flex;align-items:center;gap:6px;margin:0">
+                            <input type="checkbox" id="ozelKapali"> Bugün kapalı
+                        </label>
+                        <button onclick="ozelGunKaydet()" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Uygula</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center;margin-top:20px">
+                <a href="/kayit" style="color:#64748b;font-size:0.85rem;text-decoration:none">Yeni işletme mi? Kayıt ol →</a>
             </div>
         </div>
     </div>
@@ -708,26 +761,6 @@
             girisBasarili(doc.id);
         }
 
-        async function kayitOl() {
-            const ad = document.getElementById('girisIsletmeAdi').value.trim();
-            const sifre = document.getElementById('girisSifre').value.trim();
-            if (!ad || !sifre) return hataGoster('Tüm alanları doldurun');
-            if (sifre.length < 4) return hataGoster('Şifre en az 4 karakter olmalı');
-
-            // Aynı isimde var mı
-            const mevcut = await db.collection('isletmeler').where('ad', '==', ad).get();
-            if (!mevcut.empty) return hataGoster('Bu işletme adı zaten kayıtlı');
-
-            const ref = await db.collection('isletmeler').add({
-                ad: ad,
-                sifre: sifre,
-                olusturma: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            localStorage.setItem('pratigo_isletme_id', ref.id);
-            girisBasarili(ref.id);
-        }
-
         function hataGoster(msg) {
             const el = document.getElementById('girisHata');
             el.textContent = msg;
@@ -745,6 +778,8 @@
                 isletmeData = doc.data();
                 document.getElementById('topIsletmeAdi').textContent = isletmeData.ad || '';
                 document.getElementById('profilAd').value = isletmeData.ad || '';
+                document.getElementById('profilTanitim').value = isletmeData.tanitim || '';
+                saatlerFormCiz(isletmeData.calismaSaatleri);
                 qrOlustur();
             });
 
@@ -756,7 +791,7 @@
                 menuListeCiz();
             });
 
-            // Siparişleri dinle
+            // Aktif siparişleri dinle
             let ilkYukleme = true;
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
@@ -770,6 +805,9 @@
                     ilkYukleme = false;
                     kuyrukCiz(snap);
                 });
+
+            // Bugünün geçmişini dinle
+            gecmisYukle();
         }
 
         // ========== SEKME ==========
@@ -860,6 +898,7 @@
             if (kasiyerSepet.length === 0) return alert('Sepet boş');
 
             // Oturum bul (henüz bulmadıysak)
+            let oturumData = {};
             if (!aktifOturumId) {
                 const snap = await db.collection('oturumlar')
                     .where('kod', '==', kod)
@@ -869,9 +908,14 @@
                 if (snap.empty) return alert('Bu kodla aktif oturum bulunamadı');
                 aktifOturumId = snap.docs[0].id;
                 aktifMusteriKod = kod;
+                oturumData = snap.docs[0].data();
+            } else {
+                const oturumDoc = await db.collection('oturumlar').doc(aktifOturumId).get();
+                oturumData = oturumDoc.data() || {};
             }
 
             const toplam = kasiyerSepet.reduce((t, s) => t + (s.fiyat * s.adet), 0);
+            const siparisNotu = oturumData.siparisNotu || '';
 
             // Sipariş oluştur
             await db.collection('siparisler').add({
@@ -882,6 +926,7 @@
                 toplam: toplam,
                 durum: 'onay_bekliyor',
                 siraNo: null,
+                not: siparisNotu,
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -920,6 +965,7 @@
                             <span class="kuyruk-toplam">${s.toplam} ₺</span>
                         </div>
                         <div class="kuyruk-urunler">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
+                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-bottom:6px;background:#422006;padding:4px 8px;border-radius:6px">📝 ' + s.not + '</div>' : ''}
                         <div class="kuyruk-alt">
                             <input class="sira-no-input" type="text" placeholder="Sıra No" id="sira_${s.id}" inputmode="numeric" maxlength="4">
                             <button class="btn-odendi" onclick="odendiIsaretle('${s.id}')">💳 ÖDENDİ</button>
@@ -941,6 +987,7 @@
                             <span class="kuyruk-toplam">${formatKod(s.musteriKod)}</span>
                         </div>
                         <div class="kuyruk-urunler">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
+                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-bottom:6px;background:#422006;padding:4px 8px;border-radius:6px">📝 ' + s.not + '</div>' : ''}
                         <button class="btn-hazir" onclick="hazirIsaretle('${s.id}')">✅ HAZIR!</button>
                     </div>
                 `).join('');
@@ -963,7 +1010,8 @@
 
         async function hazirIsaretle(siparisId) {
             await db.collection('siparisler').doc(siparisId).update({
-                durum: 'hazir'
+                durum: 'hazir',
+                tamamlanma: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
 
@@ -1062,9 +1110,10 @@
         async function profilKaydet() {
             const ad = document.getElementById('profilAd').value.trim();
             const sifre = document.getElementById('profilSifre').value.trim();
+            const tanitim = document.getElementById('profilTanitim').value.trim();
             if (!ad) return alert('İşletme adını girin');
 
-            const guncelleme = { ad: ad };
+            const guncelleme = { ad: ad, tanitim: tanitim };
             if (sifre) guncelleme.sifre = sifre;
 
             await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
@@ -1110,6 +1159,125 @@
                     osc.stop(ctx.currentTime + i * 0.12 + 0.2);
                 });
             } catch(e) {}
+        }
+
+        // ========== ÇALIŞMA SAATLERİ ==========
+        const GUN_ADLARI = {
+            pazartesi: 'Pazartesi', sali: 'Salı', carsamba: 'Çarşamba',
+            persembe: 'Perşembe', cuma: 'Cuma', cumartesi: 'Cumartesi', pazar: 'Pazar'
+        };
+        const GUN_SIRA = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+
+        function saatlerFormCiz(cs) {
+            if (!cs) {
+                // Varsayılan oluştur
+                cs = {};
+                GUN_SIRA.forEach(g => { cs[g] = { acilis: '10:00', kapanis: '22:00', kapali: false }; });
+            }
+
+            const form = document.getElementById('saatlerForm');
+            form.innerHTML = GUN_SIRA.map(g => {
+                const v = cs[g] || { acilis: '10:00', kapanis: '22:00', kapali: false };
+                return `
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                    <span style="min-width:85px;color:#94a3b8;font-weight:600">${GUN_ADLARI[g]}</span>
+                    <input type="time" id="saat_${g}_a" value="${v.acilis}" style="padding:6px;background:#0f172a;border:1px solid #475569;border-radius:6px;color:#f8fafc;outline:none;font-size:0.85rem" ${v.kapali ? 'disabled' : ''}>
+                    <span style="color:#475569">-</span>
+                    <input type="time" id="saat_${g}_k" value="${v.kapanis}" style="padding:6px;background:#0f172a;border:1px solid #475569;border-radius:6px;color:#f8fafc;outline:none;font-size:0.85rem" ${v.kapali ? 'disabled' : ''}>
+                    <label style="color:#64748b;display:flex;align-items:center;gap:4px;font-size:0.8rem;cursor:pointer">
+                        <input type="checkbox" id="saat_${g}_kapali" ${v.kapali ? 'checked' : ''} onchange="saatKapaliToggle('${g}')"> Kapalı
+                    </label>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function saatKapaliToggle(gun) {
+            const kapali = document.getElementById('saat_' + gun + '_kapali').checked;
+            document.getElementById('saat_' + gun + '_a').disabled = kapali;
+            document.getElementById('saat_' + gun + '_k').disabled = kapali;
+        }
+
+        async function saatleriKaydet() {
+            const cs = {};
+            GUN_SIRA.forEach(g => {
+                cs[g] = {
+                    acilis: document.getElementById('saat_' + g + '_a').value,
+                    kapanis: document.getElementById('saat_' + g + '_k').value,
+                    kapali: document.getElementById('saat_' + g + '_kapali').checked
+                };
+            });
+            await db.collection('isletmeler').doc(isletmeId).update({ calismaSaatleri: cs });
+            alert('Çalışma saatleri kaydedildi');
+        }
+
+        async function ozelGunKaydet() {
+            const tarih = new Date().toISOString().split('T')[0];
+            const kapali = document.getElementById('ozelKapali').checked;
+            const acilis = document.getElementById('ozelAcilis').value;
+            const kapanis = document.getElementById('ozelKapanis').value;
+
+            const guncelleme = {};
+            guncelleme['gunOzel.' + tarih] = {
+                acilis: acilis,
+                kapanis: kapanis,
+                kapali: kapali
+            };
+            await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
+            alert(kapali ? 'Bugün kapalı olarak işaretlendi' : 'Bugünün saatleri güncellendi: ' + acilis + ' - ' + kapanis);
+        }
+
+        // ========== GEÇMİŞ ==========
+        function gecmisYukle() {
+            // Bugünün başlangıcı
+            const bugun = new Date();
+            bugun.setHours(0, 0, 0, 0);
+
+            db.collection('siparisler')
+                .where('isletmeId', '==', isletmeId)
+                .where('durum', '==', 'hazir')
+                .where('olusturma', '>=', bugun)
+                .orderBy('olusturma', 'desc')
+                .onSnapshot(snap => {
+                    const siparisler = [];
+                    snap.forEach(doc => siparisler.push({ id: doc.id, ...doc.data() }));
+                    gecmisCiz(siparisler);
+                });
+        }
+
+        function gecmisCiz(siparisler) {
+            // Özet
+            const toplamCiro = siparisler.reduce((t, s) => t + (s.toplam || 0), 0);
+            const ortalama = siparisler.length > 0 ? Math.round(toplamCiro / siparisler.length) : 0;
+
+            document.getElementById('ozetSiparis').textContent = siparisler.length;
+            document.getElementById('ozetCiro').textContent = toplamCiro + ' ₺';
+            document.getElementById('ozetOrtalama').textContent = ortalama + ' ₺';
+
+            // Liste
+            const el = document.getElementById('gecmisListesi');
+            if (siparisler.length === 0) {
+                el.innerHTML = '<div class="bos-kuyruk">Henüz tamamlanan sipariş yok</div>';
+                return;
+            }
+
+            el.innerHTML = siparisler.map(s => {
+                const saat = s.olusturma ? new Date(s.olusturma.toDate()).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                return `
+                <div style="background:#0f172a;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                            <span style="color:#22c55e;font-weight:700">Sıra: ${s.siraNo || '-'}</span>
+                            <span style="color:#475569;font-size:0.8rem">${saat}</span>
+                            <span style="color:#64748b;font-size:0.8rem">Kod: ${s.musteriKod || '-'}</span>
+                        </div>
+                        <div style="color:#94a3b8;font-size:0.85rem">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
+                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-top:2px">📝 ' + s.not + '</div>' : ''}
+                    </div>
+                    <div style="font-weight:700;color:#f97316;font-size:1.1rem;white-space:nowrap;margin-left:12px">${s.toplam} ₺</div>
+                </div>
+                `;
+            }).join('');
         }
     </script>
 </body>

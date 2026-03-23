@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>PRATİGO</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icon-192.png">
     <meta name="theme-color" content="#f97316">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -452,15 +453,120 @@
             color: #64748b;
         }
         .bos-bilgi .ikon { font-size: 3rem; margin-bottom: 12px; }
+
+        /* SİPARİŞ NOTU */
+        .siparis-not-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 2px solid #475569;
+            border-radius: 10px;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            outline: none;
+            resize: none;
+            min-height: 44px;
+            font-family: inherit;
+            margin-top: 8px;
+        }
+        .siparis-not-input:focus { border-color: #f97316; }
+        .siparis-not-input::placeholder { color: #475569; }
+        .not-label { color: #94a3b8; font-size: 0.8rem; margin-top: 12px; }
+
+        /* KAPALI BANNER */
+        .kapali-banner {
+            margin: 16px;
+            padding: 16px;
+            background: #1e293b;
+            border: 2px solid #ef4444;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        .kapali-banner .ikon { font-size: 1.5rem; margin-bottom: 6px; }
+        .kapali-banner h3 { color: #ef4444; font-size: 1rem; margin-bottom: 4px; }
+        .kapali-banner p { color: #94a3b8; font-size: 0.85rem; }
+
+        /* İŞLETME BİLGİ */
+        .bilgi-btn {
+            position: absolute;
+            top: 50%;
+            right: 16px;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #334155;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .bilgi-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 180;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .bilgi-kutu {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 360px;
+            width: 100%;
+        }
+        .bilgi-kutu h3 {
+            color: #f97316;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+        .bilgi-kutu .bilgi-satir {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .bilgi-kutu .bilgi-kapat {
+            margin-top: 16px;
+            width: 100%;
+            padding: 12px;
+            background: #334155;
+            border: none;
+            border-radius: 10px;
+            color: #f8fafc;
+            font-weight: 600;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
     <!-- KARŞILAMA -->
-    <div class="karsilama">
+    <div class="karsilama" style="position:relative">
         <div class="isletme-adi" id="isletmeAdi">...</div>
         <div class="hos-geldin">Hoş Geldiniz</div>
         <div class="pratigo-badge">PRATİGO</div>
+        <button class="bilgi-btn" onclick="bilgiAc()">ℹ️</button>
+    </div>
+
+    <!-- KAPALI BANNER -->
+    <div class="kapali-banner" id="kapaliBanner">
+        <div class="ikon">🔒</div>
+        <h3>Şu An Kapalıyız</h3>
+        <p id="kapaliMesaj">Menüyü inceleyebilirsiniz fakat sipariş veremezsiniz.</p>
+    </div>
+
+    <!-- İŞLETME BİLGİ OVERLAY -->
+    <div class="bilgi-overlay" id="bilgiOverlay" onclick="bilgiKapat(event)">
+        <div class="bilgi-kutu">
+            <h3 id="bilgiAd">İşletme</h3>
+            <div id="bilgiIcerik"></div>
+            <button class="bilgi-kapat" onclick="bilgiKapat()">Kapat</button>
+        </div>
     </div>
 
     <!-- SİPARİŞ DURUM BANNER -->
@@ -516,6 +622,8 @@
                 <span>Toplam</span>
                 <span id="sepetToplamText">0 ₺</span>
             </div>
+            <div class="not-label">📝 Sipariş Notu</div>
+            <textarea class="siparis-not-input" id="siparisNotu" placeholder="Ketçapsız, ekstra sos, az pişmiş..."></textarea>
             <div class="sepet-alt">
                 <button class="btn-sepet-temizle" onclick="sepetiTemizle()">Temizle</button>
                 <button class="btn-sepet-kasaya" onclick="kasayaIlet()">Kasaya Gönder →</button>
@@ -538,8 +646,10 @@
         let sepet = [];
         let menuVerisi = [];
         let oturumVerisi = {};
+        let isletmeVerisi = {};
         let aktifSiparisId = null;
         let kodUretildi = false;
+        let isletmeAcik = true;
 
         // ========== OTURUM DİNLE ==========
         db.collection('oturumlar').doc(oturumId).onSnapshot(doc => {
@@ -547,6 +657,80 @@
             oturumVerisi = doc.data();
             document.getElementById('isletmeAdi').textContent = oturumVerisi.isletmeAdi || '';
         });
+
+        // ========== İŞLETME VERİSİ DİNLE (çalışma saatleri + bilgi) ==========
+        db.collection('isletmeler').doc(isletmeId).onSnapshot(doc => {
+            if (!doc.exists) return;
+            isletmeVerisi = doc.data();
+            calismaSaatiKontrol();
+        });
+
+        function calismaSaatiKontrol() {
+            const cs = isletmeVerisi.calismaSaatleri;
+            if (!cs) { isletmeAcik = true; return; }
+
+            const simdi = new Date();
+            const gunler = ['pazar','pazartesi','sali','carsamba','persembe','cuma','cumartesi'];
+            const bugunkiGun = gunler[simdi.getDay()];
+            const tarih = simdi.toISOString().split('T')[0];
+
+            // Güne özel kontrol
+            let gunVerisi = null;
+            if (isletmeVerisi.gunOzel && isletmeVerisi.gunOzel[tarih]) {
+                gunVerisi = isletmeVerisi.gunOzel[tarih];
+            } else {
+                gunVerisi = cs[bugunkiGun];
+            }
+
+            if (!gunVerisi || gunVerisi.kapali) {
+                isletmeKapali('Bugün kapalıyız');
+                return;
+            }
+
+            const saat = String(simdi.getHours()).padStart(2, '0') + ':' + String(simdi.getMinutes()).padStart(2, '0');
+            if (saat < gunVerisi.acilis || saat >= gunVerisi.kapanis) {
+                isletmeKapali('Çalışma saatleri: ' + gunVerisi.acilis + ' - ' + gunVerisi.kapanis);
+                return;
+            }
+
+            isletmeAcik = true;
+            document.getElementById('kapaliBanner').style.display = 'none';
+        }
+
+        function isletmeKapali(mesaj) {
+            isletmeAcik = false;
+            const banner = document.getElementById('kapaliBanner');
+            document.getElementById('kapaliMesaj').textContent = mesaj + '. Menüyü inceleyebilirsiniz.';
+            banner.style.display = 'block';
+        }
+
+        // ========== BİLGİ MODAL ==========
+        function bilgiAc() {
+            document.getElementById('bilgiAd').textContent = isletmeVerisi.ad || '';
+            let html = '';
+            if (isletmeVerisi.tanitim) {
+                html += '<div class="bilgi-satir">' + isletmeVerisi.tanitim + '</div>';
+            }
+            if (isletmeVerisi.calismaSaatleri) {
+                const gunAdlari = { pazartesi:'Pazartesi', sali:'Salı', carsamba:'Çarşamba', persembe:'Perşembe', cuma:'Cuma', cumartesi:'Cumartesi', pazar:'Pazar' };
+                html += '<div class="bilgi-satir" style="margin-top:12px"><strong style="color:#f8fafc">Çalışma Saatleri</strong></div>';
+                ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'].forEach(g => {
+                    const v = isletmeVerisi.calismaSaatleri[g];
+                    if (v) {
+                        const durum = v.kapali ? '<span style="color:#ef4444">Kapalı</span>' : v.acilis + ' - ' + v.kapanis;
+                        html += '<div class="bilgi-satir">' + gunAdlari[g] + ': ' + durum + '</div>';
+                    }
+                });
+            }
+            if (!html) html = '<div class="bilgi-satir">İşletme bilgisi henüz eklenmemiş.</div>';
+            document.getElementById('bilgiIcerik').innerHTML = html;
+            document.getElementById('bilgiOverlay').style.display = 'flex';
+        }
+
+        function bilgiKapat(e) {
+            if (e && e.target !== document.getElementById('bilgiOverlay')) return;
+            document.getElementById('bilgiOverlay').style.display = 'none';
+        }
 
         // ========== MENÜ DİNLE ==========
         db.collection('isletmeler').doc(isletmeId).collection('menu').orderBy('sira', 'asc').onSnapshot(snapshot => {
@@ -603,6 +787,9 @@
 
         function sepeteEkleTikla(event, id, ad, fiyat) {
             event.stopPropagation();
+            if (!isletmeAcik) {
+                return alert('İşletme şu an kapalı, sipariş veremezsiniz.');
+            }
             sepeteEkle(id, ad, fiyat);
             const satir = document.getElementById('msatir_' + id);
             satir.classList.add('secili');
@@ -675,6 +862,9 @@
         // ========== KASAYA İLET (3 HANELİ KOD ÜRET) ==========
         async function kasayaIlet() {
             if (sepet.length === 0) return;
+            if (!isletmeAcik) return alert('İşletme şu an kapalı, sipariş veremezsiniz.');
+
+            const siparisNotu = document.getElementById('siparisNotu').value.trim();
 
             if (!kodUretildi) {
                 let kod = '';
@@ -694,7 +884,8 @@
                     kodGosterim: kod,
                     sepetKasada: true,
                     sepet: sepet,
-                    sepetToplam: sepet.reduce((t, s) => t + (s.fiyat * s.adet), 0)
+                    sepetToplam: sepet.reduce((t, s) => t + (s.fiyat * s.adet), 0),
+                    siparisNotu: siparisNotu
                 });
 
                 oturumVerisi.kod = kod;
@@ -703,7 +894,8 @@
                 await db.collection('oturumlar').doc(oturumId).update({
                     sepetKasada: true,
                     sepet: sepet,
-                    sepetToplam: sepet.reduce((t, s) => t + (s.fiyat * s.adet), 0)
+                    sepetToplam: sepet.reduce((t, s) => t + (s.fiyat * s.adet), 0),
+                    siparisNotu: siparisNotu
                 });
             }
 

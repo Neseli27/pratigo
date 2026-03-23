@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PRATİGO - İşletme Kayıt</title>
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .kayit-kutu {
+            max-width: 420px;
+            width: 100%;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #f97316;
+            letter-spacing: 4px;
+        }
+        .logo p { color: #64748b; font-size: 0.9rem; margin-top: 4px; }
+        .avm-badge {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 12px;
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+        .avm-badge .avm-adi {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+        .avm-badge .avm-alt { color: #64748b; font-size: 0.8rem; margin-top: 2px; }
+        .form-alan {
+            margin-bottom: 16px;
+        }
+        .form-alan label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .form-alan input, .form-alan textarea {
+            width: 100%;
+            padding: 14px;
+            background: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 12px;
+            color: #f8fafc;
+            font-size: 1rem;
+            outline: none;
+            font-family: inherit;
+        }
+        .form-alan input:focus, .form-alan textarea:focus {
+            border-color: #f97316;
+        }
+        .form-alan textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .form-alan input::placeholder, .form-alan textarea::placeholder { color: #475569; }
+        .btn-kayit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-kayit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .mesaj {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .mesaj.hata { color: #ef4444; }
+        .mesaj.basari { color: #22c55e; }
+        .giris-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .giris-link a {
+            color: #f97316;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .basari-kutu {
+            display: none;
+            text-align: center;
+            padding: 32px 20px;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 2px solid #22c55e;
+        }
+        .basari-kutu .ikon { font-size: 3rem; margin-bottom: 12px; }
+        .basari-kutu h2 { color: #22c55e; margin-bottom: 8px; }
+        .basari-kutu p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px; }
+        .btn-panele-git {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #f97316;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="kayit-kutu">
+        <!-- FORM -->
+        <div id="formAlani">
+            <div class="logo">
+                <h1>PRATİGO</h1>
+                <p>İşletme Kayıt Formu</p>
+            </div>
+
+            <div class="avm-badge">
+                <div class="avm-adi" id="avmAdi">Primemall AVM</div>
+                <div class="avm-alt">Food Court İşletme Kaydı</div>
+            </div>
+
+            <div class="form-alan">
+                <label>İşletme Adı *</label>
+                <input type="text" id="isletmeAdi" placeholder="Örn: Burger House">
+            </div>
+
+            <div class="form-alan">
+                <label>Şifre * (Panel girişi için)</label>
+                <input type="password" id="sifre" placeholder="En az 4 karakter">
+            </div>
+
+            <div class="form-alan">
+                <label>Kısa Tanıtım (isteğe bağlı)</label>
+                <textarea id="tanitim" placeholder="Örn: 2015'ten beri Gaziantep'in en lezzetli burgerleri"></textarea>
+            </div>
+
+            <div class="form-alan">
+                <label>Yetkili Telefon (isteğe bağlı)</label>
+                <input type="tel" id="telefon" placeholder="05xx xxx xx xx">
+            </div>
+
+            <button class="btn-kayit" id="btnKayit" onclick="kayitOl()">İşletmemi Kaydet</button>
+
+            <p class="mesaj" id="mesaj"></p>
+
+            <div class="giris-link">
+                Zaten kayıtlı mısınız? <a href="/kasiyer">Giriş yapın →</a>
+            </div>
+        </div>
+
+        <!-- BAŞARI -->
+        <div class="basari-kutu" id="basariKutu">
+            <div class="ikon">🎉</div>
+            <h2>Kayıt Başarılı!</h2>
+            <p id="basariMesaj">İşletmeniz Primemall AVM'ye eklendi. Artık menünüzü ekleyip müşterilerinize hizmet verebilirsiniz.</p>
+            <a class="btn-panele-git" href="/kasiyer">Panele Git →</a>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script>
+        // Varsayılan AVM: Primemall
+        const AVM_ID = 'primemall';
+        const AVM_ADI = 'Primemall AVM';
+
+        // AVM'yi oluştur (yoksa)
+        (async function() {
+            const avmDoc = await db.collection('avmler').doc(AVM_ID).get();
+            if (!avmDoc.exists) {
+                await db.collection('avmler').doc(AVM_ID).set({
+                    ad: AVM_ADI,
+                    slug: 'primemall',
+                    olusturma: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        })();
+
+        async function kayitOl() {
+            const ad = document.getElementById('isletmeAdi').value.trim();
+            const sifre = document.getElementById('sifre').value.trim();
+            const tanitim = document.getElementById('tanitim').value.trim();
+            const telefon = document.getElementById('telefon').value.trim();
+
+            if (!ad) return mesajGoster('İşletme adını girin', 'hata');
+            if (!sifre || sifre.length < 4) return mesajGoster('Şifre en az 4 karakter olmalı', 'hata');
+
+            document.getElementById('btnKayit').disabled = true;
+
+            // Aynı AVM'de aynı isimde var mı
+            const mevcut = await db.collection('isletmeler')
+                .where('ad', '==', ad)
+                .where('avmId', '==', AVM_ID)
+                .get();
+
+            if (!mevcut.empty) {
+                document.getElementById('btnKayit').disabled = false;
+                return mesajGoster('Bu isimde bir işletme zaten kayıtlı', 'hata');
+            }
+
+            // Varsayılan çalışma saatleri (Pazartesi-Pazar 10:00-22:00)
+            const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+            const calismaSaatleri = {};
+            gunler.forEach(g => {
+                calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false };
+            });
+
+            const ref = await db.collection('isletmeler').add({
+                ad: ad,
+                sifre: sifre,
+                avmId: AVM_ID,
+                avmAdi: AVM_ADI,
+                tanitim: tanitim,
+                telefon: telefon,
+                calismaSaatleri: calismaSaatleri,
+                gunOzel: {},
+                olusturma: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Başarı ekranı
+            document.getElementById('formAlani').style.display = 'none';
+            document.getElementById('basariKutu').style.display = 'block';
+        }
+
+        function mesajGoster(text, tip) {
+            const el = document.getElementById('mesaj');
+            el.textContent = text;
+            el.className = 'mesaj ' + tip;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>
