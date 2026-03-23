@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PRATİGO</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f97316">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* ÜST BAR */
+        .topbar {
+            background: #1e293b;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar .brand {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #f97316;
+            letter-spacing: 2px;
+        }
+        .topbar .isletme-adi {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        /* KOD ALANI */
+        .kod-alani {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            margin: 16px;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 2px solid #475569;
+        }
+        .kod-label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .kod-sayi {
+            font-size: 3.2rem;
+            font-weight: 900;
+            color: #f97316;
+            letter-spacing: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+        .kod-bilgi {
+            color: #64748b;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        /* SİPARİŞ DURUMU BANNER */
+        .durum-banner {
+            margin: 0 16px 16px;
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .durum-onay-bekliyor {
+            background: #1e3a5f;
+            border: 2px solid #3b82f6;
+            display: flex;
+        }
+        .durum-hazirlaniyor {
+            background: #1a3320;
+            border: 2px solid #22c55e;
+        }
+        .durum-hazir {
+            background: #14532d;
+            border: 3px solid #22c55e;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+            50% { box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0.3); }
+        }
+
+        .durum-icon { font-size: 2rem; }
+        .durum-text h3 { font-size: 1rem; margin-bottom: 2px; }
+        .durum-text p { font-size: 0.85rem; color: #94a3b8; }
+
+        .sira-no-dev {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #22c55e;
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        /* ONAY MODAL */
+        .onay-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .onay-kutu {
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 380px;
+            width: 100%;
+            border: 2px solid #3b82f6;
+        }
+        .onay-baslik {
+            color: #3b82f6;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .onay-urun {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .onay-urun-satir {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 0.95rem;
+        }
+        .onay-urun-satir:last-child { border: none; }
+        .onay-toplam {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #f97316;
+            padding: 12px 0;
+            border-top: 2px solid #334155;
+        }
+        .onay-butonlar {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .btn-red {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: 2px solid #ef4444;
+            background: transparent;
+            color: #ef4444;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-green {
+            flex: 1.5;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* MENÜ */
+        .section-title {
+            padding: 0 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 0 16px;
+            margin-bottom: 20px;
+        }
+        .menu-item {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 2px solid #334155;
+            cursor: pointer;
+            transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .menu-item:active {
+            border-color: #f97316;
+            transform: scale(0.97);
+        }
+        .menu-item .urun-ad {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .menu-item .urun-fiyat {
+            color: #f97316;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* SEPET BARI */
+        .sepet-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            border-top: 2px solid #334155;
+            padding: 12px 16px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+        .sepet-bar.aktif { display: flex; }
+        .sepet-bilgi {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sepet-adet {
+            background: #f97316;
+            color: #fff;
+            font-weight: 800;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+        }
+        .sepet-toplam {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .btn-kasaya-ilet {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* SEPET DETAY OVERLAY */
+        .sepet-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 150;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .sepet-panel {
+            background: #1e293b;
+            border-radius: 20px 20px 0 0;
+            padding: 24px 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .sepet-panel-baslik {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .sepet-panel-baslik h3 { font-size: 1.2rem; }
+        .sepet-kapat {
+            background: #334155;
+            border: none;
+            color: #f8fafc;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .sepet-urun-satir {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .sepet-urun-ad { flex: 1; font-size: 0.95rem; }
+        .sepet-urun-adet {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sepet-urun-adet button {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .sepet-urun-adet .eksi {
+            background: #dc2626;
+            color: #fff;
+        }
+        .sepet-urun-adet .arti {
+            background: #22c55e;
+            color: #fff;
+        }
+        .sepet-urun-adet span {
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+        }
+        .sepet-urun-fiyat {
+            min-width: 70px;
+            text-align: right;
+            font-weight: 700;
+            color: #f97316;
+        }
+        .sepet-alt {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        .btn-sepet-temizle {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: 2px solid #ef4444;
+            background: transparent;
+            color: #ef4444;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-sepet-kasaya {
+            flex: 2;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* BOŞ DURUM */
+        .bos-bilgi {
+            text-align: center;
+            padding: 40px 16px;
+            color: #64748b;
+        }
+        .bos-bilgi .ikon { font-size: 3rem; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+    <!-- ÜST BAR -->
+    <div class="topbar">
+        <span class="brand">PRATİGO</span>
+        <span class="isletme-adi" id="isletmeAdi"></span>
+    </div>
+
+    <!-- KOD ALANI -->
+    <div class="kod-alani">
+        <div class="kod-label">Kodunuz</div>
+        <div class="kod-sayi" id="kodSayi">---</div>
+        <div class="kod-bilgi">Bu kodu kasiyere söyleyin</div>
+    </div>
+
+    <!-- SİPARİŞ DURUM BANNER -->
+    <div class="durum-banner" id="durumBanner"></div>
+
+    <!-- ONAY MODAL -->
+    <div class="onay-overlay" id="onayOverlay">
+        <div class="onay-kutu">
+            <div class="onay-baslik">📋 Sipariş Onayı</div>
+            <div class="onay-urun" id="onayUrunler"></div>
+            <div class="onay-toplam">
+                <span>Toplam</span>
+                <span id="onayToplam">0 ₺</span>
+            </div>
+            <div class="onay-butonlar">
+                <button class="btn-red" onclick="siparisiReddet()">Reddet</button>
+                <button class="btn-green" onclick="siparisiOnayla()">✓ Onayla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENÜ -->
+    <div id="menuAlani">
+        <p class="section-title">Menü</p>
+        <div class="menu-grid" id="menuGrid"></div>
+    </div>
+
+    <!-- BOŞ MENÜ -->
+    <div id="bosMenu" class="bos-bilgi" style="display:none">
+        <div class="ikon">🍽️</div>
+        <p>Menü yükleniyor...</p>
+    </div>
+
+    <!-- SEPET OVERLAY -->
+    <div class="sepet-overlay" id="sepetOverlay" onclick="sepetKapat(event)">
+        <div class="sepet-panel" id="sepetPanel">
+            <div class="sepet-panel-baslik">
+                <h3>🛒 Sepetim</h3>
+                <button class="sepet-kapat" onclick="sepetKapat()">✕</button>
+            </div>
+            <div id="sepetDetay"></div>
+            <div class="sepet-alt">
+                <button class="btn-sepet-temizle" onclick="sepetiTemizle()">Temizle</button>
+                <button class="btn-sepet-kasaya" onclick="kasayaIlet()">Kasaya İlet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEPET BAR -->
+    <div class="sepet-bar" id="sepetBar">
+        <div class="sepet-bilgi" onclick="sepetAc()">
+            <div class="sepet-adet" id="sepetAdet">0</div>
+            <div class="sepet-toplam" id="sepetToplam">0 ₺</div>
+        </div>
+        <button class="btn-kasaya-ilet" onclick="kasayaIlet()">Kasaya İlet →</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script>
+        // URL parametreleri
+        const params = new URLSearchParams(window.location.search);
+        const oturumId = params.get('oturum');
+        const isletmeId = params.get('isletme');
+
+        if (!oturumId || !isletmeId) {
+            document.body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#ef4444;font-size:1.2rem;">Geçersiz oturum. QR kodu tekrar okutun.</div>';
+        }
+
+        let sepet = [];
+        let menuVerisi = [];
+        let oturumVerisi = {};
+        let aktifSiparisId = null;
+
+        // ========== OTURUM DİNLE ==========
+        db.collection('oturumlar').doc(oturumId).onSnapshot(doc => {
+            if (!doc.exists) return;
+            oturumVerisi = doc.data();
+            document.getElementById('kodSayi').textContent = oturumVerisi.kodGosterim || '---';
+            document.getElementById('isletmeAdi').textContent = oturumVerisi.isletmeAdi || '';
+        });
+
+        // ========== MENÜ DİNLE ==========
+        db.collection('isletmeler').doc(isletmeId).collection('menu').orderBy('sira', 'asc').onSnapshot(snapshot => {
+            menuVerisi = [];
+            snapshot.forEach(doc => {
+                menuVerisi.push({ id: doc.id, ...doc.data() });
+            });
+            menuCiz();
+        });
+
+        function menuCiz() {
+            const grid = document.getElementById('menuGrid');
+            if (menuVerisi.length === 0) {
+                grid.innerHTML = '';
+                document.getElementById('bosMenu').style.display = 'block';
+                document.getElementById('menuAlani').style.display = 'none';
+                return;
+            }
+            document.getElementById('bosMenu').style.display = 'none';
+            document.getElementById('menuAlani').style.display = 'block';
+
+            grid.innerHTML = menuVerisi.filter(u => u.aktif !== false).map(u => `
+                <div class="menu-item" onclick="sepeteEkle('${u.id}', '${u.ad}', ${u.fiyat})">
+                    <div class="urun-ad">${u.ad}</div>
+                    <div class="urun-fiyat">${u.fiyat} ₺</div>
+                </div>
+            `).join('');
+        }
+
+        // ========== SEPET ==========
+        function sepeteEkle(id, ad, fiyat) {
+            const mevcut = sepet.find(s => s.id === id);
+            if (mevcut) {
+                mevcut.adet++;
+            } else {
+                sepet.push({ id, ad, fiyat, adet: 1 });
+            }
+            sepetGuncelle();
+        }
+
+        function sepetGuncelle() {
+            const toplam = sepet.reduce((t, s) => t + (s.fiyat * s.adet), 0);
+            const adet = sepet.reduce((t, s) => t + s.adet, 0);
+
+            document.getElementById('sepetAdet').textContent = adet;
+            document.getElementById('sepetToplam').textContent = toplam + ' ₺';
+
+            const bar = document.getElementById('sepetBar');
+            bar.classList.toggle('aktif', adet > 0);
+
+            // Sepet detay
+            document.getElementById('sepetDetay').innerHTML = sepet.map((s, i) => `
+                <div class="sepet-urun-satir">
+                    <div class="sepet-urun-ad">${s.ad}</div>
+                    <div class="sepet-urun-adet">
+                        <button class="eksi" onclick="adetDegistir(${i}, -1)">−</button>
+                        <span>${s.adet}</span>
+                        <button class="arti" onclick="adetDegistir(${i}, 1)">+</button>
+                    </div>
+                    <div class="sepet-urun-fiyat">${s.fiyat * s.adet} ₺</div>
+                </div>
+            `).join('');
+
+            // Firestore'a sepeti kaydet
+            db.collection('oturumlar').doc(oturumId).update({
+                sepet: sepet,
+                sepetToplam: toplam
+            });
+        }
+
+        function adetDegistir(index, delta) {
+            sepet[index].adet += delta;
+            if (sepet[index].adet <= 0) sepet.splice(index, 1);
+            sepetGuncelle();
+        }
+
+        function sepetiTemizle() {
+            sepet = [];
+            sepetGuncelle();
+            sepetKapat();
+        }
+
+        function sepetAc() {
+            document.getElementById('sepetOverlay').style.display = 'flex';
+        }
+
+        function sepetKapat(e) {
+            if (e && e.target !== document.getElementById('sepetOverlay')) return;
+            document.getElementById('sepetOverlay').style.display = 'none';
+        }
+
+        // ========== KASAYA İLET ==========
+        function kasayaIlet() {
+            if (sepet.length === 0) return;
+            db.collection('oturumlar').doc(oturumId).update({
+                sepetKasada: true,
+                sepet: sepet,
+                sepetToplam: sepet.reduce((t, s) => t + (s.fiyat * s.adet), 0)
+            });
+            sepetKapat();
+            alert('Sepetiniz kasaya iletildi!\nLütfen kasaya gidip kodunuzu söyleyin:\n\n' + (oturumVerisi.kodGosterim || ''));
+        }
+
+        // ========== SİPARİŞ DİNLE (gerçek zamanlı) ==========
+        db.collection('siparisler')
+            .where('oturumId', '==', oturumId)
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    const siparis = { id: change.doc.id, ...change.doc.data() };
+                    siparisGuncelle(siparis);
+                });
+            });
+
+        function siparisGuncelle(siparis) {
+            aktifSiparisId = siparis.id;
+            const banner = document.getElementById('durumBanner');
+
+            if (siparis.durum === 'onay_bekliyor') {
+                // Onay modalını göster
+                onayModalGoster(siparis);
+                banner.style.display = 'none';
+            }
+            else if (siparis.durum === 'onaylandi' || siparis.durum === 'odeme_bekliyor') {
+                banner.className = 'durum-banner durum-onay-bekliyor';
+                banner.style.display = 'flex';
+                banner.innerHTML = `
+                    <div class="durum-icon">⏳</div>
+                    <div class="durum-text">
+                        <h3>Ödeme Bekleniyor</h3>
+                        <p>Kasaya gidip ödemenizi yapın</p>
+                    </div>
+                `;
+                document.getElementById('onayOverlay').style.display = 'none';
+            }
+            else if (siparis.durum === 'hazirlaniyor') {
+                banner.className = 'durum-banner durum-hazirlaniyor';
+                banner.style.display = 'flex';
+                banner.innerHTML = `
+                    <div class="durum-icon">👨‍🍳</div>
+                    <div class="durum-text">
+                        <h3>Siparişiniz Hazırlanıyor</h3>
+                        <p>Sıra No: <strong style="color:#f97316;font-size:1.3rem">${siparis.siraNo || '-'}</strong></p>
+                    </div>
+                `;
+                // Menüyü gizle
+                document.getElementById('menuAlani').style.display = 'none';
+                document.getElementById('sepetBar').classList.remove('aktif');
+            }
+            else if (siparis.durum === 'hazir') {
+                banner.className = 'durum-banner durum-hazir';
+                banner.style.display = 'flex';
+                banner.innerHTML = `
+                    <div style="text-align:center;width:100%">
+                        <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+                        <div class="sira-no-dev">${siparis.siraNo || ''}</div>
+                        <h3 style="color:#22c55e;font-size:1.3rem;margin-bottom:4px">SİPARİŞİNİZ HAZIR!</h3>
+                        <p style="color:#86efac">Teslim noktasından alabilirsiniz</p>
+                    </div>
+                `;
+                // Titreşim
+                if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+                document.getElementById('menuAlani').style.display = 'none';
+                document.getElementById('sepetBar').classList.remove('aktif');
+            }
+        }
+
+        // ========== ONAY MODAL ==========
+        function onayModalGoster(siparis) {
+            const urunlerHTML = (siparis.urunler || []).map(u => `
+                <div class="onay-urun-satir">
+                    <span>${u.ad} × ${u.adet}</span>
+                    <span style="color:#f97316;font-weight:700">${u.fiyat * u.adet} ₺</span>
+                </div>
+            `).join('');
+
+            document.getElementById('onayUrunler').innerHTML = urunlerHTML;
+            document.getElementById('onayToplam').textContent = siparis.toplam + ' ₺';
+            document.getElementById('onayOverlay').style.display = 'flex';
+        }
+
+        function siparisiOnayla() {
+            if (!aktifSiparisId) return;
+            db.collection('siparisler').doc(aktifSiparisId).update({
+                durum: 'onaylandi'
+            });
+            document.getElementById('onayOverlay').style.display = 'none';
+            sepet = [];
+            sepetGuncelle();
+        }
+
+        function siparisiReddet() {
+            if (!aktifSiparisId) return;
+            db.collection('siparisler').doc(aktifSiparisId).update({
+                durum: 'reddedildi'
+            });
+            document.getElementById('onayOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
