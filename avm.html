@@ -222,11 +222,19 @@
                 grid.innerHTML = isletmeler.map(i => {
                     const harf = (i.ad || '?').charAt(0).toUpperCase();
                     const acikMi = isletmeAcikMi(i);
+
+                    // Tahmini süre
+                    let sureHTML = '';
+                    if (i.tapiSure && i.tapiVeriSayisi >= 3) {
+                        sureHTML = '<div style="font-size:0.75rem;color:#94a3b8;margin-top:4px">⏱ ~' + i.tapiSure + ' dk</div>';
+                    }
+
                     return `
                     <div class="restoran-kart" onclick="restoranSec('${i.id}')">
                         <div class="restoran-ikon">${harf}</div>
                         <div class="restoran-ad">${i.ad}</div>
                         <div class="restoran-durum ${acikMi ? 'acik' : 'kapali'}">${acikMi ? '● Açık' : '● Kapalı'}</div>
+                        ${sureHTML}
                     </div>
                     `;
                 }).join('');

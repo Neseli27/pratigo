@@ -461,6 +461,88 @@
         }
         .bos-bilgi .ikon { font-size: 3rem; margin-bottom: 12px; }
 
+        /* ALDIM BUTONU */
+        .btn-aldim {
+            display: block;
+            width: 100%;
+            max-width: 280px;
+            margin: 16px auto 0;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            font-size: 1.15rem;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+        .btn-aldim:active { transform: scale(0.97); }
+        .oto-kapanma {
+            color: #475569;
+            font-size: 0.75rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* EMOJİ GERİ BİLDİRİM */
+        .emoji-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .emoji-kutu {
+            text-align: center;
+            padding: 32px;
+            max-width: 340px;
+            width: 100%;
+        }
+        .emoji-kutu h3 {
+            color: #f8fafc;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .emoji-kutu p {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+        }
+        .emoji-secim {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+        }
+        .emoji-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #334155;
+            background: #1e293b;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .emoji-btn:active { transform: scale(1.15); }
+        .emoji-btn.olumlu:active { border-color: #22c55e; background: #14532d; }
+        .emoji-btn.olumsuz:active { border-color: #ef4444; background: #450a0a; }
+        .emoji-atla {
+            display: block;
+            margin: 20px auto 0;
+            background: none;
+            border: none;
+            color: #475569;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
         /* ÇIKIŞ BUTONU */
         .btn-cikis {
             position: absolute;
@@ -598,6 +680,19 @@
 
     <!-- SİPARİŞ DURUM BANNER -->
     <div class="durum-banner" id="durumBanner"></div>
+
+    <!-- EMOJİ GERİ BİLDİRİM -->
+    <div class="emoji-overlay" id="emojiOverlay">
+        <div class="emoji-kutu">
+            <h3>Siparişiniz nasıldı?</h3>
+            <p>Tek dokunuşla değerlendirin</p>
+            <div class="emoji-secim">
+                <button class="emoji-btn olumlu" onclick="geriBildirimGonder('olumlu')">😊</button>
+                <button class="emoji-btn olumsuz" onclick="geriBildirimGonder('olumsuz')">😞</button>
+            </div>
+            <button class="emoji-atla" onclick="oturumuKapat()">Geç</button>
+        </div>
+    </div>
 
     <!-- ONAY MODAL -->
     <div class="onay-overlay" id="onayOverlay">
@@ -993,16 +1088,82 @@
             else if (siparis.durum === 'hazirlaniyor') {
                 banner.className = 'durum-banner durum-hazirlaniyor';
                 banner.style.display = 'flex';
-                banner.innerHTML = `
-                    <div class="durum-icon">👨‍🍳</div>
-                    <div class="durum-text">
-                        <h3>Siparişiniz Hazırlanıyor</h3>
-                        <p>Sıra No: <strong style="color:#f97316;font-size:1.3rem">${siparis.siraNo || '-'}</strong></p>
-                    </div>
-                `;
+
+                // Tahmini süre hesapla
+                let tahminHTML = '';
+                const tapiSure = isletmeVerisi.tapiSure;
+                const tapiVeri = isletmeVerisi.tapiVeriSayisi || 0;
+
+                if (tapiSure && tapiVeri >= 3) {
+                    // Mutfağa giriş zamanı varsa kalan süreyi hesapla
+                    let kalanHTML = '';
+                    if (siparis.mutfagaGiris) {
+                        const giris = siparis.mutfagaGiris.toDate();
+                        const gecenDk = Math.round((new Date() - giris) / 60000);
+                        const kalan = Math.max(0, tapiSure - gecenDk);
+                        if (kalan > 0) {
+                            kalanHTML = '<div style="font-size:2rem;font-weight:900;color:#22c55e;margin:8px 0">~' + kalan + ' dk</div>';
+                        } else {
+                            kalanHTML = '<div style="font-size:1rem;color:#22c55e;margin:8px 0">Birazdan hazır...</div>';
+                        }
+                    } else {
+                        kalanHTML = '<div style="font-size:2rem;font-weight:900;color:#22c55e;margin:8px 0">~' + tapiSure + ' dk</div>';
+                    }
+
+                    tahminHTML = `
+                        <div style="text-align:center;width:100%">
+                            <div style="font-size:1.5rem;margin-bottom:4px">👨‍🍳</div>
+                            <h3 style="color:#f8fafc;font-size:1rem">Siparişiniz Hazırlanıyor</h3>
+                            <p style="color:#94a3b8;font-size:0.85rem">Sıra No: <strong style="color:#f97316;font-size:1.3rem">${siparis.siraNo || '-'}</strong></p>
+                            <div style="margin-top:10px;padding:12px;background:rgba(0,0,0,0.2);border-radius:10px">
+                                <p style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px">Tahmini Bekleme</p>
+                                ${kalanHTML}
+                                <div style="width:100%;height:4px;background:#334155;border-radius:4px;overflow:hidden;margin-top:6px">
+                                    <div id="beklemeCubuk" style="height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px;transition:width 1s;width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // İlerleme çubuğu güncelle
+                    if (siparis.mutfagaGiris) {
+                        const giris = siparis.mutfagaGiris.toDate();
+                        const gecenDk = (new Date() - giris) / 60000;
+                        const yuzde = Math.min(95, Math.round((gecenDk / tapiSure) * 100));
+                        setTimeout(() => {
+                            const cubuk = document.getElementById('beklemeCubuk');
+                            if (cubuk) cubuk.style.width = yuzde + '%';
+                        }, 300);
+                    }
+
+                    // Geri sayımı her dakika güncelle
+                    if (window._beklemeInterval) clearInterval(window._beklemeInterval);
+                    window._beklemeInterval = setInterval(() => {
+                        if (siparis.mutfagaGiris) {
+                            const giris = siparis.mutfagaGiris.toDate();
+                            const gecenDk = Math.round((new Date() - giris) / 60000);
+                            const kalan = Math.max(0, tapiSure - gecenDk);
+                            const yuzde = Math.min(95, Math.round((gecenDk / tapiSure) * 100));
+                            const cubuk = document.getElementById('beklemeCubuk');
+                            if (cubuk) cubuk.style.width = yuzde + '%';
+                        }
+                    }, 30000); // 30 saniyede bir güncelle
+                } else {
+                    // Henüz yeterli veri yok — basit gösterim
+                    tahminHTML = `
+                        <div class="durum-icon">👨‍🍳</div>
+                        <div class="durum-text">
+                            <h3>Siparişiniz Hazırlanıyor</h3>
+                            <p>Sıra No: <strong style="color:#f97316;font-size:1.3rem">${siparis.siraNo || '-'}</strong></p>
+                        </div>
+                    `;
+                }
+
+                banner.innerHTML = tahminHTML;
                 gizleMenuVeSepet();
             }
             else if (siparis.durum === 'hazir') {
+                if (window._beklemeInterval) clearInterval(window._beklemeInterval);
                 banner.className = 'durum-banner durum-hazir';
                 banner.style.display = 'flex';
                 banner.innerHTML = `
@@ -1011,11 +1172,33 @@
                         <div class="sira-no-dev">${siparis.siraNo || ''}</div>
                         <h3 style="color:#22c55e;font-size:1.3rem;margin-bottom:4px">SİPARİŞİNİZ HAZIR!</h3>
                         <p style="color:#86efac">Teslim noktasından alabilirsiniz</p>
+                        <button class="btn-aldim" onclick="siparisiAldim()">✓ ALDIM</button>
+                        <p class="oto-kapanma" id="otoKapanma"></p>
                     </div>
                 `;
                 if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
                 bildirimSesiCal();
                 gizleMenuVeSepet();
+
+                // 5 dakika sonra otomatik "aldım" kabul et
+                let kalanSn = 300; // 5 dakika
+                if (window._otoKapanmaInterval) clearInterval(window._otoKapanmaInterval);
+                function otoSayaciGuncelle() {
+                    const dk = Math.floor(kalanSn / 60);
+                    const sn = kalanSn % 60;
+                    const el = document.getElementById('otoKapanma');
+                    if (el) el.textContent = dk + ':' + String(sn).padStart(2, '0') + ' sonra otomatik kapatılacak';
+                }
+                otoSayaciGuncelle();
+                window._otoKapanmaInterval = setInterval(() => {
+                    kalanSn--;
+                    if (kalanSn <= 0) {
+                        clearInterval(window._otoKapanmaInterval);
+                        siparisiAldim();
+                    } else {
+                        otoSayaciGuncelle();
+                    }
+                }, 1000);
             }
         }
 
@@ -1066,6 +1249,73 @@
                     osc.stop(ctx.currentTime + i * 0.15 + 0.3);
                 });
             } catch(e) {}
+        }
+
+        // ========== ALDIM + GERİ BİLDİRİM ==========
+        function siparisiAldim() {
+            if (window._otoKapanmaInterval) clearInterval(window._otoKapanmaInterval);
+
+            // Siparişi "teslim_edildi" olarak güncelle
+            if (aktifSiparisId) {
+                db.collection('siparisler').doc(aktifSiparisId).update({
+                    durum: 'teslim_edildi',
+                    teslimZaman: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(() => {});
+            }
+
+            // Emoji geri bildirim göster
+            document.getElementById('durumBanner').style.display = 'none';
+            document.getElementById('emojiOverlay').style.display = 'flex';
+
+            // 15 saniye sonra geri bildirim vermezse otomatik kapat
+            window._emojiTimeout = setTimeout(() => {
+                oturumuKapat();
+            }, 15000);
+        }
+
+        function geriBildirimGonder(tip) {
+            if (window._emojiTimeout) clearTimeout(window._emojiTimeout);
+
+            // Geri bildirimi kaydet
+            if (aktifSiparisId) {
+                db.collection('siparisler').doc(aktifSiparisId).update({
+                    geriBildirim: tip
+                }).catch(() => {});
+
+                // İşletmenin geri bildirim istatistiğini güncelle
+                const alan = tip === 'olumlu' ? 'olumluSayisi' : 'olumsuzSayisi';
+                db.collection('isletmeler').doc(isletmeId).update({
+                    [alan]: firebase.firestore.FieldValue.increment(1)
+                }).catch(() => {});
+            }
+
+            // Kısa teşekkür göster, sonra kapat
+            const kutu = document.querySelector('.emoji-kutu');
+            kutu.innerHTML = `
+                <div style="font-size:3rem;margin-bottom:12px">${tip === 'olumlu' ? '😊' : '😞'}</div>
+                <h3 style="color:#22c55e">Teşekkürler!</h3>
+                <p style="color:#64748b;margin-top:8px">Değerlendirmeniz kaydedildi</p>
+            `;
+
+            setTimeout(() => oturumuKapat(), 2000);
+        }
+
+        function oturumuKapat() {
+            if (window._emojiTimeout) clearTimeout(window._emojiTimeout);
+            if (window._otoKapanmaInterval) clearInterval(window._otoKapanmaInterval);
+
+            // Oturumu kapat
+            if (oturumId) {
+                db.collection('oturumlar').doc(oturumId).update({ aktif: false }).catch(() => {});
+            }
+
+            // AVM'den geldiyse oraya dön, yoksa ana sayfaya
+            const hedefAvm = avmId || (isletmeVerisi && isletmeVerisi.avmId);
+            if (hedefAvm) {
+                window.location.href = '/avm?id=' + hedefAvm;
+            } else {
+                window.location.href = '/';
+            }
         }
     </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>

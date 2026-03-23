@@ -637,6 +637,7 @@
                 <div class="kuyruk-bolum">
                     <div class="kuyruk-baslik">
                         👨‍🍳 Mutfakta <span class="badge-yesil" id="mutfakSayisi">0</span>
+                        <span id="ortSureGosterge" style="margin-left:auto;font-size:0.75rem;color:#64748b;font-weight:400"></span>
                     </div>
                     <div id="mutfakKuyrugu">
                         <div class="bos-kuyruk">Mutfakta sipariş yok</div>
@@ -676,6 +677,10 @@
                 <div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:14px;text-align:center">
                     <div style="color:#64748b;font-size:0.8rem">Ortalama</div>
                     <div style="font-size:1.8rem;font-weight:900;color:#3b82f6" id="ozetOrtalama">0 ₺</div>
+                </div>
+                <div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:14px;text-align:center">
+                    <div style="color:#64748b;font-size:0.8rem">Memnuniyet</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:#eab308" id="ozetMemnuniyet">-</div>
                 </div>
             </div>
             <div class="panel-baslik">📋 Tamamlanan Siparişler</div>
@@ -814,6 +819,16 @@
                 document.getElementById('profilTelefon').value = isletmeData.telefon || '';
                 saatlerFormCiz(isletmeData.calismaSaatleri);
                 qrOlustur();
+
+                // Ortalama süre göstergesi
+                const el = document.getElementById('ortSureGosterge');
+                if (isletmeData.tapiSure && isletmeData.tapiVeriSayisi >= 3) {
+                    el.textContent = '⏱ Ort. ~' + isletmeData.tapiSure + ' dk (' + isletmeData.tapiVeriSayisi + ' sipariş verisi)';
+                    el.style.color = '#22c55e';
+                } else {
+                    el.textContent = '⏱ Tahmin için en az 3 sipariş gerekli';
+                    el.style.color = '#475569';
+                }
             });
 
             // Menüyü dinle
@@ -1037,14 +1052,72 @@
 
             await db.collection('siparisler').doc(siparisId).update({
                 durum: 'hazirlaniyor',
-                siraNo: siraNo
+                siraNo: siraNo,
+                mutfagaGiris: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
 
         async function hazirIsaretle(siparisId) {
-            await db.collection('siparisler').doc(siparisId).update({
+            // Önce siparişi oku, bekleme süresini hesapla
+            const siparisDoc = await db.collection('siparisler').doc(siparisId).get();
+            const siparis = siparisDoc.data();
+
+            const guncelleme = {
                 durum: 'hazir',
-                tamamlanma: firebase.firestore.FieldValue.serverTimestamp()
+                hazirZaman: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Bekleme süresini hesapla (mutfağa giriş → hazır)
+            if (siparis.mutfagaGiris) {
+                const giris = siparis.mutfagaGiris.toDate();
+                const simdi = new Date();
+                const beklemeDk = Math.round((simdi - giris) / 60000);
+                guncelleme.beklemeDk = beklemeDk;
+            }
+
+            await db.collection('siparisler').doc(siparisId).update(guncelleme);
+
+            // İşletmenin ortalama süresini güncelle
+            ortalamaGuncelle();
+        }
+
+        // ========== TAHMİNİ BEKLEME SÜRESİ HESAPLAMA ==========
+        async function ortalamaGuncelle() {
+            // Son tamamlanan siparişleri al (basit sorgu, index gerektirmez)
+            const snap = await db.collection('siparisler')
+                .where('isletmeId', '==', isletmeId)
+                .where('durum', '==', 'hazir')
+                .orderBy('hazirZaman', 'desc')
+                .limit(20)
+                .get();
+
+            // beklemeDk değeri olan siparişleri filtrele
+            const sureler = [];
+            snap.forEach(doc => {
+                const dk = doc.data().beklemeDk;
+                if (dk && dk > 0 && dk < 120) sureler.push(dk);
+            });
+
+            if (sureler.length < 3) {
+                await db.collection('isletmeler').doc(isletmeId).update({
+                    tapiSure: null,
+                    tapiVeriSayisi: sureler.length
+                });
+                return;
+            }
+
+            // Uç değerleri at (5'ten fazla veri varsa en düşük ve en yüksek çıkar)
+            sureler.sort((a, b) => a - b);
+            const temiz = sureler.length > 5
+                ? sureler.slice(1, -1)
+                : sureler;
+
+            const ortalama = Math.round(temiz.reduce((t, s) => t + s, 0) / temiz.length);
+
+            await db.collection('isletmeler').doc(isletmeId).update({
+                tapiSure: ortalama,
+                tapiVeriSayisi: sureler.length,
+                tapiSonGuncelleme: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
 
@@ -1264,13 +1337,12 @@
 
         // ========== GEÇMİŞ ==========
         function gecmisYukle() {
-            // Bugünün başlangıcı
             const bugun = new Date();
             bugun.setHours(0, 0, 0, 0);
 
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
-                .where('durum', '==', 'hazir')
+                .where('durum', 'in', ['hazir', 'teslim_edildi'])
                 .where('olusturma', '>=', bugun)
                 .orderBy('olusturma', 'desc')
                 .onSnapshot(snap => {
@@ -1289,6 +1361,20 @@
             document.getElementById('ozetCiro').textContent = toplamCiro + ' ₺';
             document.getElementById('ozetOrtalama').textContent = ortalama + ' ₺';
 
+            // Memnuniyet oranı
+            const olumlu = isletmeData.olumluSayisi || 0;
+            const olumsuz = isletmeData.olumsuzSayisi || 0;
+            const toplamGB = olumlu + olumsuz;
+            const memnuniyetEl = document.getElementById('ozetMemnuniyet');
+            if (toplamGB >= 3) {
+                const oran = Math.round((olumlu / toplamGB) * 100);
+                memnuniyetEl.textContent = '%' + oran;
+                memnuniyetEl.style.color = oran >= 70 ? '#22c55e' : oran >= 40 ? '#eab308' : '#ef4444';
+            } else {
+                memnuniyetEl.textContent = '-';
+                memnuniyetEl.style.color = '#475569';
+            }
+
             // Liste
             const el = document.getElementById('gecmisListesi');
             if (siparisler.length === 0) {
@@ -1298,13 +1384,16 @@
 
             el.innerHTML = siparisler.map(s => {
                 const saat = s.olusturma ? new Date(s.olusturma.toDate()).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const gbEmoji = s.geriBildirim === 'olumlu' ? '😊' : s.geriBildirim === 'olumsuz' ? '😞' : '';
+                const beklemeTxt = s.beklemeDk ? s.beklemeDk + ' dk' : '';
                 return `
                 <div style="background:#0f172a;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
                     <div>
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
                             <span style="color:#22c55e;font-weight:700">Sıra: ${s.siraNo || '-'}</span>
                             <span style="color:#475569;font-size:0.8rem">${saat}</span>
-                            <span style="color:#64748b;font-size:0.8rem">Kod: ${s.musteriKod || '-'}</span>
+                            ${beklemeTxt ? '<span style="color:#3b82f6;font-size:0.75rem">⏱' + beklemeTxt + '</span>' : ''}
+                            ${gbEmoji ? '<span style="font-size:1rem">' + gbEmoji + '</span>' : ''}
                         </div>
                         <div style="color:#94a3b8;font-size:0.85rem">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
                         ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-top:2px">📝 ' + s.not + '</div>' : ''}
