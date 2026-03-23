@@ -374,6 +374,15 @@
             font-size: 0.85rem;
             cursor: pointer;
         }
+        .btn-duzenle {
+            padding: 6px 14px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
         .btn-toggle {
             padding: 6px 14px;
             background: #475569;
@@ -384,6 +393,50 @@
             cursor: pointer;
         }
         .btn-toggle.pasif { opacity: 0.5; }
+        /* Düzenleme modu */
+        .menu-liste-item.duzenle-modu {
+            border-color: #3b82f6;
+            background: #0f172a;
+        }
+        .duzenle-input {
+            padding: 8px 10px;
+            background: #1e293b;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            color: #f8fafc;
+            font-size: 0.95rem;
+            outline: none;
+            width: 100%;
+        }
+        .duzenle-input:focus { border-color: #f97316; }
+        .duzenle-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+        }
+        .duzenle-form .ad-input { flex: 2; }
+        .duzenle-form .fiyat-input { flex: 1; max-width: 90px; text-align: center; }
+        .btn-duzenle-kaydet {
+            padding: 8px 16px;
+            background: #22c55e;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-duzenle-iptal {
+            padding: 8px 12px;
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
 
         /* ===================== SEKME 3: PROFİL & QR ===================== */
         .profil-alan {
@@ -703,10 +756,17 @@
             });
 
             // Siparişleri dinle
+            let ilkYukleme = true;
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
                 .where('durum', 'in', ['onaylandi', 'odeme_bekliyor', 'hazirlaniyor'])
                 .onSnapshot(snap => {
+                    if (!ilkYukleme) {
+                        snap.docChanges().forEach(change => {
+                            if (change.type === 'added') kasiyerBildirimSesi();
+                        });
+                    }
+                    ilkYukleme = false;
                     kuyrukCiz(snap);
                 });
         }
@@ -927,19 +987,53 @@
 
         function menuListeCiz() {
             document.getElementById('menuListesi').innerHTML = menuVerisi.map(u => `
-                <div class="menu-liste-item" style="${u.aktif === false ? 'opacity:0.5' : ''}">
-                    <div>
+                <div class="menu-liste-item" id="menu_item_${u.id}" style="${u.aktif === false ? 'opacity:0.5' : ''}">
+                    <div id="menu_goster_${u.id}">
                         <span class="ad">${u.ad}</span>
                         <span class="fiyat" style="margin-left:12px">${u.fiyat} ₺</span>
                     </div>
-                    <div class="islemler">
+                    <div id="menu_duzenle_${u.id}" style="display:none;width:100%">
+                        <div class="duzenle-form">
+                            <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${u.ad}">
+                            <input class="duzenle-input fiyat-input" id="edit_fiyat_${u.id}" type="number" value="${u.fiyat}">
+                            <button class="btn-duzenle-kaydet" onclick="urunKaydet('${u.id}')">✓</button>
+                            <button class="btn-duzenle-iptal" onclick="urunDuzenleIptal('${u.id}')">✕</button>
+                        </div>
+                    </div>
+                    <div class="islemler" id="menu_btn_${u.id}">
+                        <button class="btn-duzenle" onclick="urunDuzenle('${u.id}')">✏️</button>
                         <button class="btn-toggle ${u.aktif === false ? 'pasif' : ''}" onclick="urunToggle('${u.id}', ${u.aktif !== false})">
                             ${u.aktif !== false ? '✓ Aktif' : '✗ Pasif'}
                         </button>
-                        <button class="btn-sil" onclick="urunSil('${u.id}')">Sil</button>
+                        <button class="btn-sil" onclick="urunSil('${u.id}')">🗑️</button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function urunDuzenle(id) {
+            document.getElementById('menu_goster_' + id).style.display = 'none';
+            document.getElementById('menu_btn_' + id).style.display = 'none';
+            document.getElementById('menu_duzenle_' + id).style.display = 'block';
+            document.getElementById('menu_item_' + id).classList.add('duzenle-modu');
+        }
+
+        function urunDuzenleIptal(id) {
+            document.getElementById('menu_goster_' + id).style.display = '';
+            document.getElementById('menu_btn_' + id).style.display = 'flex';
+            document.getElementById('menu_duzenle_' + id).style.display = 'none';
+            document.getElementById('menu_item_' + id).classList.remove('duzenle-modu');
+        }
+
+        async function urunKaydet(id) {
+            const yeniAd = document.getElementById('edit_ad_' + id).value.trim();
+            const yeniFiyat = parseFloat(document.getElementById('edit_fiyat_' + id).value);
+            if (!yeniAd || !yeniFiyat) return alert('Ad ve fiyat boş olamaz');
+
+            await db.collection('isletmeler').doc(isletmeId).collection('menu').doc(id).update({
+                ad: yeniAd,
+                fiyat: yeniFiyat
+            });
         }
 
         async function urunToggle(id, aktif) {
@@ -986,6 +1080,25 @@
             link.download = 'pratigo-qr.png';
             link.href = canvas.toDataURL();
             link.click();
+        }
+
+        // ========== BİLDİRİM SESİ ==========
+        function kasiyerBildirimSesi() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [440, 554, 659].forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = f;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.12 + 0.2);
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 0.2);
+                });
+            } catch(e) {}
         }
     </script>
 </body>

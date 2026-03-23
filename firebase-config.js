@@ -4,13 +4,12 @@
 // Kendi Firebase proje bilgilerinizi buraya girin
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCqUSoowo2EbKKhG0SBcIzBYddwYOzHKRo",
-  authDomain: "egitim-yonetim-platformu.firebaseapp.com",
-  projectId: "egitim-yonetim-platformu",
-  storageBucket: "egitim-yonetim-platformu.firebasestorage.app",
-  messagingSenderId: "548967060709",
-  appId: "1:548967060709:web:6e0e360c8010824d34700c",
-  measurementId: "G-MNR3YS5Z5J"
+    apiKey: "BURAYA_API_KEY",
+    authDomain: "BURAYA_AUTH_DOMAIN",
+    projectId: "BURAYA_PROJECT_ID",
+    storageBucket: "BURAYA_STORAGE_BUCKET",
+    messagingSenderId: "BURAYA_SENDER_ID",
+    appId: "BURAYA_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
