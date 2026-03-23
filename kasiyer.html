@@ -672,13 +672,29 @@
     <!-- SEKME 2: MENÜ YÖNETİMİ -->
     <div class="tab-icerik" id="tab-menu">
         <div class="panel" style="max-width:600px">
-            <div class="panel-baslik">📋 Menü Yönetimi</div>
-            <div class="menu-ekle-form" style="flex-wrap:wrap">
-                <input type="text" id="yeniUrunAd" placeholder="Ürün Adı" style="flex:2;min-width:120px">
-                <input type="number" id="yeniUrunFiyat" placeholder="₺" style="max-width:100px">
-                <button onclick="urunEkle()">+ Ekle</button>
+            <!-- KATEGORİ YÖNETİMİ -->
+            <div class="panel-baslik">📂 Kategoriler</div>
+            <div class="menu-ekle-form" style="margin-bottom:8px">
+                <input type="text" id="yeniKategoriAd" placeholder="Yeni kategori adı (örn: Burger Çeşitleri)">
+                <button onclick="kategoriEkle()">+ Ekle</button>
             </div>
-            <textarea id="yeniUrunAciklama" placeholder="Açıklama (isteğe bağlı) — örn: 200gr köfte, patates, içecek dahil" style="width:100%;padding:10px 12px;background:#1e293b;border:2px solid #475569;border-radius:10px;color:#f8fafc;font-size:0.9rem;outline:none;resize:vertical;min-height:50px;margin-bottom:16px;font-family:inherit"></textarea>
+            <div id="kategoriListesi" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+            <div style="border-top:1px solid #334155;padding-top:16px;margin-top:4px">
+                <!-- ÜRÜN EKLEME -->
+                <div class="panel-baslik">📋 Ürün Ekle</div>
+                <div class="menu-ekle-form" style="flex-wrap:wrap">
+                    <select id="yeniUrunKategori" style="flex:1;min-width:120px;padding:10px;background:#0f172a;border:2px solid #475569;border-radius:10px;color:#f8fafc;outline:none">
+                        <option value="">Kategorisiz</option>
+                    </select>
+                    <input type="text" id="yeniUrunAd" placeholder="Ürün Adı" style="flex:2;min-width:120px">
+                    <input type="number" id="yeniUrunFiyat" placeholder="₺" style="max-width:100px">
+                    <button onclick="urunEkle()">+ Ekle</button>
+                </div>
+                <textarea id="yeniUrunAciklama" placeholder="Açıklama (isteğe bağlı)" style="width:100%;padding:10px 12px;background:#1e293b;border:2px solid #475569;border-radius:10px;color:#f8fafc;font-size:0.9rem;outline:none;resize:vertical;min-height:50px;margin-bottom:16px;font-family:inherit"></textarea>
+            </div>
+
+            <!-- ÜRÜN LİSTESİ -->
             <div id="menuListesi"></div>
         </div>
     </div>
@@ -844,6 +860,10 @@
                     el.textContent = '⏱ Tahmin için en az 3 sipariş gerekli';
                     el.style.color = '#475569';
                 }
+
+                // Kategorileri ve menü listesini güncelle
+                kategorileriCiz();
+                menuListeCiz();
             });
 
             // Menüyü dinle
@@ -1156,12 +1176,14 @@
             const ad = document.getElementById('yeniUrunAd').value.trim();
             const fiyat = parseFloat(document.getElementById('yeniUrunFiyat').value);
             const aciklama = document.getElementById('yeniUrunAciklama').value.trim();
+            const kategori = document.getElementById('yeniUrunKategori').value;
             if (!ad || !fiyat) return alert('Ürün adı ve fiyat girin');
 
             await db.collection('isletmeler').doc(isletmeId).collection('menu').add({
                 ad: ad,
                 fiyat: fiyat,
                 aciklama: aciklama,
+                kategori: kategori,
                 aktif: true,
                 sira: menuVerisi.length,
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
@@ -1173,37 +1195,74 @@
         }
 
         function menuListeCiz() {
-            document.getElementById('menuListesi').innerHTML = menuVerisi.map(u => {
-                const aciklamaVar = u.aciklama && u.aciklama.trim().length > 0;
-                return `
-                <div class="menu-liste-item" id="menu_item_${u.id}" style="${u.aktif === false ? 'opacity:0.5' : ''};flex-wrap:wrap">
-                    <div id="menu_goster_${u.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center">
-                        <div>
-                            <span class="ad">${u.ad}</span>
-                            <span class="fiyat" style="margin-left:12px">${u.fiyat} ₺</span>
-                            ${aciklamaVar ? `<div style="color:#64748b;font-size:0.8rem;margin-top:4px">${u.aciklama}</div>` : '<div style="color:#475569;font-size:0.75rem;margin-top:4px;font-style:italic">Açıklama yok</div>'}
-                        </div>
-                        <div class="islemler" id="menu_btn_${u.id}">
-                            <button class="btn-duzenle" onclick="urunDuzenle('${u.id}')">✏️</button>
-                            <button class="btn-toggle ${u.aktif === false ? 'pasif' : ''}" onclick="urunToggle('${u.id}', ${u.aktif !== false})">
-                                ${u.aktif !== false ? '✓ Aktif' : '✗ Pasif'}
-                            </button>
-                            <button class="btn-sil" onclick="urunSil('${u.id}')">🗑️</button>
-                        </div>
+            const kategoriler = (isletmeData.kategoriler || []);
+            
+            // Kategoriye göre grupla
+            const gruplar = {};
+            gruplar[''] = []; // Kategorisiz
+            kategoriler.forEach(k => { gruplar[k] = []; });
+            menuVerisi.forEach(u => {
+                const kat = u.kategori || '';
+                if (!gruplar[kat]) gruplar[kat] = [];
+                gruplar[kat].push(u);
+            });
+
+            let html = '';
+            
+            // Önce kategorili olanlar
+            kategoriler.forEach(kat => {
+                if (!gruplar[kat] || gruplar[kat].length === 0) return;
+                html += '<div style="color:#f97316;font-weight:700;font-size:0.85rem;padding:12px 0 6px;border-bottom:1px solid #334155;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">📂 ' + kat + '</div>';
+                html += gruplar[kat].map(u => urunSatirHTML(u)).join('');
+            });
+
+            // Kategorisiz olanlar
+            if (gruplar[''].length > 0) {
+                if (kategoriler.length > 0) {
+                    html += '<div style="color:#475569;font-weight:700;font-size:0.85rem;padding:12px 0 6px;border-bottom:1px solid #334155;margin-bottom:8px">Kategorisiz</div>';
+                }
+                html += gruplar[''].map(u => urunSatirHTML(u)).join('');
+            }
+
+            document.getElementById('menuListesi').innerHTML = html || '<div style="text-align:center;color:#475569;padding:20px">Henüz ürün eklenmemiş</div>';
+        }
+
+        function urunSatirHTML(u) {
+            const aciklamaVar = u.aciklama && u.aciklama.trim().length > 0;
+            const katAdi = u.kategori || '';
+            return `
+            <div class="menu-liste-item" id="menu_item_${u.id}" style="${u.aktif === false ? 'opacity:0.5' : ''};flex-wrap:wrap">
+                <div id="menu_goster_${u.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <span class="ad">${u.ad}</span>
+                        <span class="fiyat" style="margin-left:12px">${u.fiyat} ₺</span>
+                        ${aciklamaVar ? '<div style="color:#64748b;font-size:0.8rem;margin-top:4px">' + u.aciklama + '</div>' : ''}
                     </div>
-                    <div id="menu_duzenle_${u.id}" style="display:none;width:100%">
-                        <div class="duzenle-form" style="flex-wrap:wrap">
-                            <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${u.ad}">
-                            <input class="duzenle-input fiyat-input" id="edit_fiyat_${u.id}" type="number" value="${u.fiyat}">
-                        </div>
-                        <textarea class="duzenle-input" id="edit_aciklama_${u.id}" placeholder="Açıklama (isteğe bağlı)" style="width:100%;margin-top:8px;min-height:45px;resize:vertical;font-family:inherit">${u.aciklama || ''}</textarea>
-                        <div style="display:flex;gap:8px;margin-top:8px">
-                            <button class="btn-duzenle-kaydet" onclick="urunKaydet('${u.id}')">✓ Kaydet</button>
-                            <button class="btn-duzenle-iptal" onclick="urunDuzenleIptal('${u.id}')">✕ İptal</button>
-                        </div>
+                    <div class="islemler" id="menu_btn_${u.id}">
+                        <button class="btn-duzenle" onclick="urunDuzenle('${u.id}')">✏️</button>
+                        <button class="btn-toggle ${u.aktif === false ? 'pasif' : ''}" onclick="urunToggle('${u.id}', ${u.aktif !== false})">
+                            ${u.aktif !== false ? '✓ Aktif' : '✗ Pasif'}
+                        </button>
+                        <button class="btn-sil" onclick="urunSil('${u.id}')">🗑️</button>
                     </div>
                 </div>
-            `}).join('');
+                <div id="menu_duzenle_${u.id}" style="display:none;width:100%">
+                    <div class="duzenle-form" style="flex-wrap:wrap">
+                        <select class="duzenle-input" id="edit_kat_${u.id}" style="flex:1;min-width:100px">
+                            <option value="" ${!katAdi ? 'selected' : ''}>Kategorisiz</option>
+                            ${(isletmeData.kategoriler || []).map(k => '<option value="' + k + '" ' + (k === katAdi ? 'selected' : '') + '>' + k + '</option>').join('')}
+                        </select>
+                        <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${u.ad}">
+                        <input class="duzenle-input fiyat-input" id="edit_fiyat_${u.id}" type="number" value="${u.fiyat}">
+                    </div>
+                    <textarea class="duzenle-input" id="edit_aciklama_${u.id}" placeholder="Açıklama (isteğe bağlı)" style="width:100%;margin-top:8px;min-height:45px;resize:vertical;font-family:inherit">${u.aciklama || ''}</textarea>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <button class="btn-duzenle-kaydet" onclick="urunKaydet('${u.id}')">✓ Kaydet</button>
+                        <button class="btn-duzenle-iptal" onclick="urunDuzenleIptal('${u.id}')">✕ İptal</button>
+                    </div>
+                </div>
+            </div>
+            `;
         }
 
         function urunDuzenle(id) {
@@ -1222,12 +1281,14 @@
             const yeniAd = document.getElementById('edit_ad_' + id).value.trim();
             const yeniFiyat = parseFloat(document.getElementById('edit_fiyat_' + id).value);
             const yeniAciklama = document.getElementById('edit_aciklama_' + id).value.trim();
+            const yeniKategori = document.getElementById('edit_kat_' + id).value;
             if (!yeniAd || !yeniFiyat) return alert('Ad ve fiyat boş olamaz');
 
             await db.collection('isletmeler').doc(isletmeId).collection('menu').doc(id).update({
                 ad: yeniAd,
                 fiyat: yeniFiyat,
-                aciklama: yeniAciklama
+                aciklama: yeniAciklama,
+                kategori: yeniKategori
             });
         }
 
@@ -1240,6 +1301,45 @@
         async function urunSil(id) {
             if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
             await db.collection('isletmeler').doc(isletmeId).collection('menu').doc(id).delete();
+        }
+
+        // ========== KATEGORİ YÖNETİMİ ==========
+        function kategorileriCiz() {
+            const kategoriler = isletmeData.kategoriler || [];
+            
+            // Kategori listesi (tag'ler)
+            document.getElementById('kategoriListesi').innerHTML = kategoriler.length === 0
+                ? '<span style="color:#475569;font-size:0.85rem">Henüz kategori eklenmemiş</span>'
+                : kategoriler.map(k => `
+                    <span style="display:inline-flex;align-items:center;gap:6px;background:#334155;padding:6px 12px;border-radius:8px;font-size:0.85rem">
+                        ${k}
+                        <button onclick="kategoriSil('${k}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;padding:0">✕</button>
+                    </span>
+                `).join('');
+
+            // Ürün ekleme dropdown'ını güncelle
+            document.getElementById('yeniUrunKategori').innerHTML = '<option value="">Kategorisiz</option>' +
+                kategoriler.map(k => '<option value="' + k + '">' + k + '</option>').join('');
+        }
+
+        async function kategoriEkle() {
+            const ad = document.getElementById('yeniKategoriAd').value.trim();
+            if (!ad) return alert('Kategori adı girin');
+
+            const mevcut = isletmeData.kategoriler || [];
+            if (mevcut.includes(ad)) return alert('Bu kategori zaten var');
+
+            await db.collection('isletmeler').doc(isletmeId).update({
+                kategoriler: firebase.firestore.FieldValue.arrayUnion(ad)
+            });
+            document.getElementById('yeniKategoriAd').value = '';
+        }
+
+        async function kategoriSil(ad) {
+            if (!confirm('"' + ad + '" kategorisi silinsin mi? İçindeki ürünler kategorisiz olacak.')) return;
+            await db.collection('isletmeler').doc(isletmeId).update({
+                kategoriler: firebase.firestore.FieldValue.arrayRemove(ad)
+            });
         }
 
         // ========== PROFİL ==========

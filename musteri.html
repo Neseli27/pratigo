@@ -823,6 +823,7 @@
             if (!doc.exists) return;
             isletmeVerisi = doc.data();
             calismaSaatiKontrol();
+            menuCiz(); // Kategoriler değişince menüyü güncelle
         });
 
         function calismaSaatiKontrol() {
@@ -913,28 +914,58 @@
             document.getElementById('bosMenu').style.display = 'none';
             document.getElementById('menuAlani').style.display = 'block';
 
-            liste.innerHTML = aktifMenu.map(u => {
-                const aciklamaVar = u.aciklama && u.aciklama.trim().length > 0;
-                return `
-                <div class="menu-satir" id="msatir_${u.id}">
-                    <div class="menu-satir-ust">
-                        <div class="menu-satir-sol" onclick="menuAciklamaToggle('${u.id}')">
-                            <div class="urun-ad">
-                                ${u.ad}
-                                ${aciklamaVar ? '<span class="aciklama-ikon">▼</span>' : ''}
-                            </div>
-                            <div class="urun-fiyat">${u.fiyat} ₺</div>
+            // Kategorilere göre grupla
+            const kategoriler = (isletmeVerisi.kategoriler || []);
+            const gruplar = {};
+            gruplar[''] = [];
+            kategoriler.forEach(k => { gruplar[k] = []; });
+            aktifMenu.forEach(u => {
+                const kat = u.kategori || '';
+                if (!gruplar[kat]) gruplar[kat] = [];
+                gruplar[kat].push(u);
+            });
+
+            let html = '';
+
+            // Kategorili ürünler
+            kategoriler.forEach(kat => {
+                if (!gruplar[kat] || gruplar[kat].length === 0) return;
+                html += '<div style="color:#f97316;font-weight:700;font-size:0.9rem;padding:16px 0 8px;text-transform:uppercase;letter-spacing:1px">' + kat + '</div>';
+                html += gruplar[kat].map(u => menuSatirHTML(u)).join('');
+            });
+
+            // Kategorisiz
+            if (gruplar[''].length > 0) {
+                if (kategoriler.length > 0 && html) {
+                    html += '<div style="color:#475569;font-weight:600;font-size:0.85rem;padding:16px 0 8px">Diğer</div>';
+                }
+                html += gruplar[''].map(u => menuSatirHTML(u)).join('');
+            }
+
+            liste.innerHTML = html;
+        }
+
+        function menuSatirHTML(u) {
+            const aciklamaVar = u.aciklama && u.aciklama.trim().length > 0;
+            return `
+            <div class="menu-satir" id="msatir_${u.id}">
+                <div class="menu-satir-ust">
+                    <div class="menu-satir-sol" onclick="menuAciklamaToggle('${u.id}')">
+                        <div class="urun-ad">
+                            ${u.ad}
+                            ${aciklamaVar ? '<span class="aciklama-ikon">▼</span>' : ''}
                         </div>
-                        <button class="btn-ekle" onclick="sepeteEkleTikla(event, '${u.id}', '${u.ad}', ${u.fiyat})">+</button>
+                        <div class="urun-fiyat">${u.fiyat} ₺</div>
                     </div>
-                    ${aciklamaVar ? `
-                    <div class="menu-aciklama" id="maciklama_${u.id}">
-                        <div class="menu-aciklama-icerik">${u.aciklama}</div>
-                    </div>
-                    ` : ''}
+                    <button class="btn-ekle" onclick="sepeteEkleTikla(event, '${u.id}', '${u.ad}', ${u.fiyat})">+</button>
                 </div>
-                `;
-            }).join('');
+                ${aciklamaVar ? `
+                <div class="menu-aciklama" id="maciklama_${u.id}">
+                    <div class="menu-aciklama-icerik">${u.aciklama}</div>
+                </div>
+                ` : ''}
+            </div>
+            `;
         }
 
         function menuAciklamaToggle(id) {
