@@ -668,6 +668,20 @@
             font-weight: 600;
             cursor: pointer;
         }
+        /* ÖZEL BİLDİRİM */
+        .bildirim-overlay {
+            position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999;
+            display:none; align-items:center; justify-content:center; padding:20px;
+        }
+        .bildirim-overlay.goster { display:flex; }
+        .bildirim-kutu {
+            background:#1e293b; border-radius:16px; padding:28px; max-width:340px; width:100%;
+            border:2px solid #334155; text-align:center; animation:bildirimAc 0.2s;
+        }
+        @keyframes bildirimAc { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+        .bildirim-ikon { font-size:2.2rem; margin-bottom:12px; }
+        .bildirim-mesaj { color:#e2e8f0; font-size:1rem; line-height:1.5; margin-bottom:20px; }
+        .bildirim-btn-ok { width:100%; padding:12px; border-radius:10px; font-size:0.95rem; font-weight:700; cursor:pointer; border:none; background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
     </style>
 </head>
 <body>
@@ -979,7 +993,7 @@
         function sepeteEkleTikla(event, id, ad, fiyat) {
             event.stopPropagation();
             if (!isletmeAcik) {
-                return alert('İşletme şu an kapalı, sipariş veremezsiniz.');
+                { hataBildirim('İşletme şu an kapalı, sipariş veremezsiniz.'); return; }
             }
             sepeteEkle(id, ad, fiyat);
             const satir = document.getElementById('msatir_' + id);
@@ -1053,7 +1067,7 @@
         // ========== KASAYA İLET (3 HANELİ KOD ÜRET) ==========
         async function kasayaIlet() {
             if (sepet.length === 0) return;
-            if (!isletmeAcik) return alert('İşletme şu an kapalı, sipariş veremezsiniz.');
+            if (!isletmeAcik) { hataBildirim('İşletme şu an kapalı, sipariş veremezsiniz.'); return; }
 
             const siparisNotu = document.getElementById('siparisNotu').value.trim();
 
@@ -1381,6 +1395,22 @@
                 window.location.href = '/';
             }
         }
+    </script>
+    <!-- BİLDİRİM MODALI -->
+    <div class="bildirim-overlay" id="bildirimOverlay">
+        <div class="bildirim-kutu">
+            <div class="bildirim-ikon" id="bildirimIkon">⚠️</div>
+            <div class="bildirim-mesaj" id="bildirimMesaj"></div>
+            <button class="bildirim-btn-ok" onclick="document.getElementById('bildirimOverlay').classList.remove('goster')">Tamam</button>
+        </div>
+    </div>
+
+    <script>
+    function hataBildirim(mesaj) {
+        document.getElementById('bildirimIkon').textContent = '⚠️';
+        document.getElementById('bildirimMesaj').textContent = mesaj;
+        document.getElementById('bildirimOverlay').classList.add('goster');
+    }
     </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
 </body>

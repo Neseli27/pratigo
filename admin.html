@@ -128,6 +128,19 @@
         .qr-modal-kutu .btn-group { display:flex; gap:8px; margin-top:16px; justify-content:center; }
 
         .scroll-x { overflow-x:auto; }
+
+        /* ÖZEL BİLDİRİM MODALI */
+        .bildirim-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px; }
+        .bildirim-overlay.goster { display:flex; }
+        .bildirim-kutu { background:#1e293b; border-radius:16px; padding:28px; max-width:360px; width:100%; border:2px solid #334155; text-align:center; animation:bildirimAc 0.2s; }
+        @keyframes bildirimAc { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+        .bildirim-ikon { font-size:2.2rem; margin-bottom:12px; }
+        .bildirim-mesaj { color:#e2e8f0; font-size:1rem; line-height:1.5; margin-bottom:20px; }
+        .bildirim-butonlar { display:flex; gap:10px; }
+        .bildirim-butonlar button { flex:1; padding:12px; border-radius:10px; font-size:0.95rem; font-weight:700; cursor:pointer; border:none; }
+        .bildirim-btn-ok { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
+        .bildirim-btn-iptal { background:#334155; color:#94a3b8; }
+        .bildirim-btn-tehlike { background:linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; }
     </style>
 </head>
 <body>
@@ -496,10 +509,10 @@
         async function avmEkle() {
             const ad = document.getElementById('yeniAvmAd').value.trim();
             let slug = document.getElementById('yeniAvmSlug').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (!ad || !slug) return alert('AVM adı ve URL kodu girin');
+            if (!ad || !slug) { hataBildirim('AVM adı ve URL kodu girin'); return; };
 
             const mevcut = await db.collection('avmler').doc(slug).get();
-            if (mevcut.exists) return alert('Bu URL kodu zaten kullanılıyor');
+            if (mevcut.exists) { hataBildirim('Bu URL kodu zaten kullanılıyor'); return; };
 
             await db.collection('avmler').doc(slug).set({
                 ad: ad, slug: slug,
@@ -540,8 +553,8 @@
 
         async function avmSil(id) {
             const isletmeSayisi = tumIsletmeler.filter(i => i.avmId === id).length;
-            if (isletmeSayisi > 0) return alert('Bu AVM\'de ' + isletmeSayisi + ' işletme var. Önce işletmeleri silin.');
-            if (!confirm('Bu AVM\'yi silmek istediğinize emin misiniz?')) return;
+            if (isletmeSayisi > 0) { hataBildirim('Bu AVM\'de ' + isletmeSayisi + ' işletme var. Önce işletmeleri silin.'); return; }
+            if (!await onayGoster('Bu AVM\'yi silmek istediğinize emin misiniz?', true)) return;
             await db.collection('avmler').doc(id).delete();
         }
 
@@ -553,9 +566,9 @@
             const telefon = document.getElementById('yeniIsletmeTelefon').value.trim();
             const sifre = document.getElementById('yeniIsletmeSifre').value.trim();
 
-            if (!avmId) return alert('AVM seçin');
-            if (!ad) return alert('İşletme adı girin');
-            if (!sifre || sifre.length < 4) return alert('Şifre en az 4 karakter olmalı');
+            if (!avmId) { hataBildirim('AVM seçin'); return; };
+            if (!ad) { hataBildirim('İşletme adı girin'); return; };
+            if (!sifre || sifre.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
 
             const avm = tumAvmler.find(a => a.id === avmId);
             const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
@@ -574,7 +587,7 @@
             document.getElementById('yeniIsletmeYetkili').value = '';
             document.getElementById('yeniIsletmeTelefon').value = '';
             document.getElementById('yeniIsletmeSifre').value = '';
-            alert(ad + ' eklendi');
+            basariBildirim(ad + ' eklendi');
         }
 
         // ========== İŞLETMELER (KART) ==========
@@ -690,7 +703,7 @@
 
         async function isletmeDuzenleKaydet() {
             const ad = document.getElementById('editAd').value.trim();
-            if (!ad) return alert('İşletme adı boş olamaz');
+            if (!ad) { hataBildirim('İşletme adı boş olamaz'); return; };
 
             const avmId = document.getElementById('editAvm').value;
             const avm = tumAvmler.find(a => a.id === avmId);
@@ -706,13 +719,13 @@
 
             const sifre = document.getElementById('editSifre').value.trim();
             if (sifre) {
-                if (sifre.length < 4) return alert('Şifre en az 4 karakter olmalı');
+                if (sifre.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
                 guncelleme.sifre = sifre;
             }
 
             await db.collection('isletmeler').doc(seciliDetayId).update(guncelleme);
             document.getElementById('detayOverlay').style.display = 'none';
-            alert(ad + ' güncellendi');
+            basariBildirim(ad + ' güncellendi');
         }
 
         // ========== ASKIYA AL / AKTİFLEŞTİR ==========
@@ -725,7 +738,7 @@
                 ? i.ad + ' askıya alınacak. Müşteriler bu işletmeyi göremeyecek. Emin misiniz?'
                 : i.ad + ' tekrar aktifleştirilecek. Emin misiniz?';
 
-            if (!confirm(mesaj)) return;
+            if (!await onayGoster(mesaj)) return;
             await db.collection('isletmeler').doc(seciliDetayId).update({ durum: yeniDurum });
             document.getElementById('detayOverlay').style.display = 'none';
         }
@@ -734,10 +747,9 @@
         async function isletmeAdminSil() {
             const i = tumIsletmeler.find(x => x.id === seciliDetayId);
             if (!i) return;
-            if (!confirm(i.ad + ' tamamen silinecek. Menüsü dahil tüm verileri kaybolacak. Emin misiniz?')) return;
-            if (!confirm('Son kez onaylayın: ' + i.ad + ' SİLİNSİN Mİ?')) return;
+            if (!await onayGoster(i.ad + ' tamamen silinecek. Menüsü dahil tüm verileri kaybolacak.', true)) return;
+            if (!await onayGoster('Son kez onaylayın: ' + i.ad + ' SİLİNSİN Mİ?', true)) return;
 
-            // Menü alt koleksiyonunu sil
             const menuSnap = await db.collection('isletmeler').doc(seciliDetayId).collection('menu').get();
             const batch = db.batch();
             menuSnap.forEach(doc => batch.delete(doc.ref));
@@ -770,10 +782,10 @@
         // ========== AYARLAR ==========
         async function adminSifreDegistir() {
             const yeni = document.getElementById('yeniAdminSifre').value.trim();
-            if (!yeni || yeni.length < 4) return alert('Şifre en az 4 karakter olmalı');
+            if (!yeni || yeni.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
             await db.collection('sistem').doc('admin').update({ sifre: yeni });
             document.getElementById('yeniAdminSifre').value = '';
-            alert('Admin şifresi değiştirildi');
+            basariBildirim('Admin şifresi değiştirildi');
         }
 
         async function oturumTemizle() {
@@ -804,11 +816,10 @@
         }
 
         async function tumIsletmeleriSil() {
-            if (!confirm('TÜM İŞLETMELER ve MENÜLERİ silinecek. Emin misiniz?')) return;
-            if (!confirm('Bu işlem geri alınamaz! DEVAM?')) return;
+            if (!await onayGoster('TÜM İŞLETMELER ve MENÜLERİ silinecek. Emin misiniz?', true)) return;
+            if (!await onayGoster('Bu işlem geri alınamaz! DEVAM?', true)) return;
 
             document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
-            // Önce her işletmenin menüsünü sil
             for (const i of tumIsletmeler) {
                 const menuSnap = await db.collection('isletmeler').doc(i.id).collection('menu').get();
                 const batch = db.batch();
@@ -816,31 +827,67 @@
                 await batch.commit();
             }
             const sayac = await koleksiyonSil('isletmeler');
-            document.getElementById('silmeSonuc').textContent = sayac + ' işletme silindi';
+            basariBildirim(sayac + ' işletme silindi');
         }
 
         async function tumAvmleriSil() {
-            if (tumIsletmeler.length > 0) return alert('Önce tüm işletmeleri silin');
-            if (!confirm('TÜM AVM\'LER silinecek. Emin misiniz?')) return;
+            if (tumIsletmeler.length > 0) { hataBildirim('Önce tüm işletmeleri silin'); return; }
+            if (!await onayGoster('TÜM AVM\'LER silinecek. Emin misiniz?', true)) return;
             document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
             const sayac = await koleksiyonSil('avmler');
-            document.getElementById('silmeSonuc').textContent = sayac + ' AVM silindi';
+            basariBildirim(sayac + ' AVM silindi');
         }
 
         async function tumOturumlariSil() {
-            if (!confirm('TÜM OTURUMLAR silinecek. Emin misiniz?')) return;
+            if (!await onayGoster('TÜM OTURUMLAR silinecek. Emin misiniz?', true)) return;
             document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
             const sayac = await koleksiyonSil('oturumlar');
-            document.getElementById('silmeSonuc').textContent = sayac + ' oturum silindi';
+            basariBildirim(sayac + ' oturum silindi');
         }
 
         async function tumSiparisleriSil() {
-            if (!confirm('TÜM SİPARİŞLER silinecek. Emin misiniz?')) return;
+            if (!await onayGoster('TÜM SİPARİŞLER silinecek. Emin misiniz?', true)) return;
             document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
             const sayac = await koleksiyonSil('siparisler');
-            document.getElementById('silmeSonuc').textContent = sayac + ' sipariş silindi';
+            basariBildirim(sayac + ' sipariş silindi');
         }
+
+        // ========== ÖZEL BİLDİRİM SİSTEMİ ==========
+        let _bildirimResolve = null;
+
+        function bildirimGoster(mesaj, ikon) {
+            ikon = ikon || 'ℹ️';
+            document.getElementById('bildirimIkon').textContent = ikon;
+            document.getElementById('bildirimMesaj').textContent = mesaj;
+            document.getElementById('bildirimButonlar').innerHTML = '<button class="bildirim-btn-ok" onclick="bildirimKapat()">Tamam</button>';
+            document.getElementById('bildirimOverlay').classList.add('goster');
+        }
+        function basariBildirim(mesaj) { bildirimGoster(mesaj, '✅'); }
+        function hataBildirim(mesaj) { bildirimGoster(mesaj, '⚠️'); }
+
+        function onayGoster(mesaj, tehlikeli) {
+            return new Promise(resolve => {
+                _bildirimResolve = resolve;
+                document.getElementById('bildirimIkon').textContent = tehlikeli ? '⚠️' : '❓';
+                document.getElementById('bildirimMesaj').textContent = mesaj;
+                document.getElementById('bildirimButonlar').innerHTML =
+                    '<button class="bildirim-btn-iptal" onclick="bildirimCevapla(false)">İptal</button>' +
+                    '<button class="' + (tehlikeli ? 'bildirim-btn-tehlike' : 'bildirim-btn-ok') + '" onclick="bildirimCevapla(true)">' + (tehlikeli ? 'Sil' : 'Evet') + '</button>';
+                document.getElementById('bildirimOverlay').classList.add('goster');
+            });
+        }
+        function bildirimKapat() { document.getElementById('bildirimOverlay').classList.remove('goster'); }
+        function bildirimCevapla(c) { document.getElementById('bildirimOverlay').classList.remove('goster'); if(_bildirimResolve){_bildirimResolve(c);_bildirimResolve=null;} }
     </script>
+
+    <div class="bildirim-overlay" id="bildirimOverlay">
+        <div class="bildirim-kutu">
+            <div class="bildirim-ikon" id="bildirimIkon">ℹ️</div>
+            <div class="bildirim-mesaj" id="bildirimMesaj"></div>
+            <div class="bildirim-butonlar" id="bildirimButonlar"></div>
+        </div>
+    </div>
+
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
 </body>
 </html>

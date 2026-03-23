@@ -586,6 +586,25 @@
             margin-top: 8px;
             display: none;
         }
+        /* ÖZEL BİLDİRİM MODALI */
+        .bildirim-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .bildirim-overlay.goster { display: flex; }
+        .bildirim-kutu {
+            background: #1e293b; border-radius: 16px; padding: 28px; max-width: 360px; width: 100%;
+            border: 2px solid #334155; text-align: center; animation: bildirimAc 0.2s;
+        }
+        @keyframes bildirimAc { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+        .bildirim-ikon { font-size: 2.2rem; margin-bottom: 12px; }
+        .bildirim-mesaj { color: #e2e8f0; font-size: 1rem; line-height: 1.5; margin-bottom: 20px; }
+        .bildirim-butonlar { display: flex; gap: 10px; }
+        .bildirim-butonlar button { flex: 1; padding: 12px; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none; }
+        .bildirim-btn-ok { background: linear-gradient(135deg,#f97316,#ea580c); color: #fff; }
+        .bildirim-btn-iptal { background: #334155; color: #94a3b8; }
+        .bildirim-btn-tehlike { background: linear-gradient(135deg,#dc2626,#b91c1c); color: #fff; }
+        .bildirim-btn-basari { background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; }
     </style>
 </head>
 <body>
@@ -964,7 +983,7 @@
         // ========== SEPETİ ÇEK ==========
         async function sepetiCek() {
             const kod = document.getElementById('musteriKodInput').value.replace(/\s|-/g, '');
-            if (kod.length !== 3) return alert('3 haneli müşteri kodunu girin');
+            if (kod.length !== 3) { hataBildirim('3 haneli müşteri kodunu girin'); return; };
 
             const snap = await db.collection('oturumlar')
                 .where('kod', '==', kod)
@@ -972,7 +991,7 @@
                 .where('isletmeId', '==', isletmeId)
                 .get();
 
-            if (snap.empty) return alert('Bu kodla aktif oturum bulunamadı');
+            if (snap.empty) { hataBildirim('Bu kodla aktif oturum bulunamadı'); return; };
 
             const doc = snap.docs[0];
             const data = doc.data();
@@ -990,8 +1009,8 @@
         // ========== MÜŞTERİYE GÖNDER ==========
         async function musteriyeGonder() {
             const kod = document.getElementById('musteriKodInput').value.replace(/\s|-/g, '');
-            if (kod.length !== 3 && !aktifOturumId) return alert('Müşteri kodunu girin');
-            if (kasiyerSepet.length === 0) return alert('Sepet boş');
+            if (kod.length !== 3 && !aktifOturumId) { hataBildirim('Müşteri kodunu girin'); return; };
+            if (kasiyerSepet.length === 0) { hataBildirim('Sepet boş'); return; };
 
             // Oturum bul (henüz bulmadıysak)
             let oturumData = {};
@@ -1001,7 +1020,7 @@
                     .where('aktif', '==', true)
                     .where('isletmeId', '==', isletmeId)
                     .get();
-                if (snap.empty) return alert('Bu kodla aktif oturum bulunamadı');
+                if (snap.empty) { hataBildirim('Bu kodla aktif oturum bulunamadı'); return; };
                 aktifOturumId = snap.docs[0].id;
                 aktifMusteriKod = kod;
                 oturumData = snap.docs[0].data();
@@ -1096,7 +1115,7 @@
 
         async function odendiIsaretle(siparisId) {
             const siraNo = document.getElementById('sira_' + siparisId).value.trim();
-            if (!siraNo) return alert('POS sıra numarasını girin');
+            if (!siraNo) { hataBildirim('POS sıra numarasını girin'); return; };
 
             await db.collection('siparisler').doc(siparisId).update({
                 durum: 'hazirlaniyor',
@@ -1177,7 +1196,7 @@
             const fiyat = parseFloat(document.getElementById('yeniUrunFiyat').value);
             const aciklama = document.getElementById('yeniUrunAciklama').value.trim();
             const kategori = document.getElementById('yeniUrunKategori').value;
-            if (!ad || !fiyat) return alert('Ürün adı ve fiyat girin');
+            if (!ad || !fiyat) { hataBildirim('Ürün adı ve fiyat girin'); return; };
 
             await db.collection('isletmeler').doc(isletmeId).collection('menu').add({
                 ad: ad,
@@ -1282,7 +1301,7 @@
             const yeniFiyat = parseFloat(document.getElementById('edit_fiyat_' + id).value);
             const yeniAciklama = document.getElementById('edit_aciklama_' + id).value.trim();
             const yeniKategori = document.getElementById('edit_kat_' + id).value;
-            if (!yeniAd || !yeniFiyat) return alert('Ad ve fiyat boş olamaz');
+            if (!yeniAd || !yeniFiyat) { hataBildirim('Ad ve fiyat boş olamaz'); return; };
 
             await db.collection('isletmeler').doc(isletmeId).collection('menu').doc(id).update({
                 ad: yeniAd,
@@ -1299,7 +1318,7 @@
         }
 
         async function urunSil(id) {
-            if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
+            if (!await onayGoster('Bu ürünü silmek istediğinize emin misiniz?', true)) return;
             await db.collection('isletmeler').doc(isletmeId).collection('menu').doc(id).delete();
         }
 
@@ -1324,10 +1343,10 @@
 
         async function kategoriEkle() {
             const ad = document.getElementById('yeniKategoriAd').value.trim();
-            if (!ad) return alert('Kategori adı girin');
+            if (!ad) { hataBildirim('Kategori adı girin'); return; };
 
             const mevcut = isletmeData.kategoriler || [];
-            if (mevcut.includes(ad)) return alert('Bu kategori zaten var');
+            if (mevcut.includes(ad)) { hataBildirim('Bu kategori zaten var'); return; };
 
             await db.collection('isletmeler').doc(isletmeId).update({
                 kategoriler: firebase.firestore.FieldValue.arrayUnion(ad)
@@ -1336,7 +1355,7 @@
         }
 
         async function kategoriSil(ad) {
-            if (!confirm('"' + ad + '" kategorisi silinsin mi? İçindeki ürünler kategorisiz olacak.')) return;
+            if (!await onayGoster(ad + ' kategorisi silinsin mi? İçindeki ürünler kategorisiz olacak.', true)) return;
             await db.collection('isletmeler').doc(isletmeId).update({
                 kategoriler: firebase.firestore.FieldValue.arrayRemove(ad)
             });
@@ -1349,14 +1368,14 @@
             const tanitim = document.getElementById('profilTanitim').value.trim();
             const yetkili = document.getElementById('profilYetkili').value.trim();
             const telefon = document.getElementById('profilTelefon').value.trim();
-            if (!ad) return alert('İşletme adını girin');
+            if (!ad) { hataBildirim('İşletme adını girin'); return; };
 
             const guncelleme = { ad: ad, tanitim: tanitim, yetkili: yetkili, telefon: telefon };
             if (sifre) guncelleme.sifre = sifre;
 
             await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
             document.getElementById('profilSifre').value = '';
-            alert('Bilgiler güncellendi');
+            basariBildirim('Bilgiler güncellendi');
         }
 
         // ========== QR KOD ==========
@@ -1446,7 +1465,7 @@
                 };
             });
             await db.collection('isletmeler').doc(isletmeId).update({ calismaSaatleri: cs });
-            alert('Çalışma saatleri kaydedildi');
+            basariBildirim('Çalışma saatleri kaydedildi');
         }
 
         async function ozelGunKaydet() {
@@ -1462,7 +1481,7 @@
                 kapali: kapali
             };
             await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
-            alert(kapali ? 'Bugün kapalı olarak işaretlendi' : 'Bugünün saatleri güncellendi: ' + acilis + ' - ' + kapanis);
+            basariBildirim(kapali ? 'Bugün kapalı olarak işaretlendi' : 'Bugünün saatleri güncellendi: ' + acilis + ' - ' + kapanis);
         }
 
         // ========== GEÇMİŞ ==========
@@ -1546,7 +1565,55 @@
                 `;
             }).join('');
         }
+
+        // ========== ÖZEL BİLDİRİM SİSTEMİ ==========
+        let _bildirimResolve = null;
+
+        function bildirimGoster(mesaj, ikon) {
+            ikon = ikon || 'ℹ️';
+            const overlay = document.getElementById('bildirimOverlay');
+            document.getElementById('bildirimIkon').textContent = ikon;
+            document.getElementById('bildirimMesaj').textContent = mesaj;
+            document.getElementById('bildirimButonlar').innerHTML = '<button class="bildirim-btn-ok" onclick="bildirimKapat()">Tamam</button>';
+            overlay.classList.add('goster');
+        }
+
+        function basariBildirim(mesaj) { bildirimGoster(mesaj, '✅'); }
+        function hataBildirim(mesaj) { bildirimGoster(mesaj, '⚠️'); }
+
+        function onayGoster(mesaj, tehlikeli) {
+            return new Promise(resolve => {
+                _bildirimResolve = resolve;
+                const overlay = document.getElementById('bildirimOverlay');
+                document.getElementById('bildirimIkon').textContent = tehlikeli ? '⚠️' : '❓';
+                document.getElementById('bildirimMesaj').textContent = mesaj;
+                document.getElementById('bildirimButonlar').innerHTML = `
+                    <button class="bildirim-btn-iptal" onclick="bildirimCevapla(false)">İptal</button>
+                    <button class="${tehlikeli ? 'bildirim-btn-tehlike' : 'bildirim-btn-ok'}" onclick="bildirimCevapla(true)">${tehlikeli ? 'Sil' : 'Evet'}</button>
+                `;
+                overlay.classList.add('goster');
+            });
+        }
+
+        function bildirimKapat() {
+            document.getElementById('bildirimOverlay').classList.remove('goster');
+        }
+
+        function bildirimCevapla(cevap) {
+            document.getElementById('bildirimOverlay').classList.remove('goster');
+            if (_bildirimResolve) { _bildirimResolve(cevap); _bildirimResolve = null; }
+        }
     </script>
+
+    <!-- BİLDİRİM MODALI -->
+    <div class="bildirim-overlay" id="bildirimOverlay">
+        <div class="bildirim-kutu">
+            <div class="bildirim-ikon" id="bildirimIkon">ℹ️</div>
+            <div class="bildirim-mesaj" id="bildirimMesaj"></div>
+            <div class="bildirim-butonlar" id="bildirimButonlar"></div>
+        </div>
+    </div>
+
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
 </body>
 </html>
