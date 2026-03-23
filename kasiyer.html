@@ -592,7 +592,7 @@
             <div class="panel">
                 <div class="panel-baslik">🆕 Yeni Sipariş</div>
                 <div class="kod-giris">
-                    <input type="text" id="musteriKodInput" placeholder="Müşteri Kodu" maxlength="6" inputmode="numeric">
+                    <input type="text" id="musteriKodInput" placeholder="Müşteri Kodu" maxlength="3" inputmode="numeric">
                     <button class="btn-sepet-cek" onclick="sepetiCek()">🛒 Sepeti Çek</button>
                 </div>
                 <div class="kasiyer-menu-grid" id="kasiyerMenuGrid"></div>
@@ -830,7 +830,7 @@
         // ========== SEPETİ ÇEK ==========
         async function sepetiCek() {
             const kod = document.getElementById('musteriKodInput').value.replace(/\s|-/g, '');
-            if (kod.length !== 6) return alert('6 haneli müşteri kodunu girin');
+            if (kod.length !== 3) return alert('3 haneli müşteri kodunu girin');
 
             const snap = await db.collection('oturumlar')
                 .where('kod', '==', kod)
@@ -856,7 +856,7 @@
         // ========== MÜŞTERİYE GÖNDER ==========
         async function musteriyeGonder() {
             const kod = document.getElementById('musteriKodInput').value.replace(/\s|-/g, '');
-            if (kod.length !== 6 && !aktifOturumId) return alert('Müşteri kodunu girin');
+            if (kod.length !== 3 && !aktifOturumId) return alert('Müşteri kodunu girin');
             if (kasiyerSepet.length === 0) return alert('Sepet boş');
 
             // Oturum bul (henüz bulmadıysak)
@@ -948,8 +948,7 @@
         }
 
         function formatKod(kod) {
-            if (!kod || kod.length !== 6) return kod || '---';
-            return kod.substring(0, 3) + ' - ' + kod.substring(3);
+            return kod || '---';
         }
 
         async function odendiIsaretle(siparisId) {

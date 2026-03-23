@@ -67,7 +67,7 @@
         <p class="subtitle">Sipariş Ver · Masanda Otur · Telefonun Titresin</p>
         <div id="loading">
             <div class="spinner"></div>
-            <p class="status-text">Kodunuz oluşturuluyor...</p>
+            <p class="status-text">Menü yükleniyor...</p>
         </div>
         <div id="error" class="error-box">
             <p>QR kodu geçersiz veya işletme bulunamadı.</p>
@@ -88,7 +88,6 @@
                 return;
             }
 
-            // İşletme var mı kontrol et
             const isletmeDoc = await db.collection('isletmeler').doc(isletmeId).get();
             if (!isletmeDoc.exists) {
                 document.getElementById('loading').style.display = 'none';
@@ -96,38 +95,17 @@
                 return;
             }
 
-            // 6 haneli benzersiz kod üret (479-655 formatı)
-            let kod = '';
-            let benzersiz = false;
-            while (!benzersiz) {
-                const n1 = String(Math.floor(Math.random() * 900) + 100);
-                const n2 = String(Math.floor(Math.random() * 900) + 100);
-                kod = n1 + n2;
-
-                // Bu kod aktif mi kontrol et
-                const mevcut = await db.collection('oturumlar')
-                    .where('kod', '==', kod)
-                    .where('aktif', '==', true)
-                    .get();
-                if (mevcut.empty) benzersiz = true;
-            }
-
-            const kodGosterim = kod.substring(0, 3) + ' - ' + kod.substring(3);
-
-            // Oturum oluştur
+            // Oturum oluştur (kod henüz yok, kasaya gönderilince üretilecek)
             const oturumRef = await db.collection('oturumlar').add({
-                kod: kod,
-                kodGosterim: kodGosterim,
                 isletmeId: isletmeId,
                 isletmeAdi: isletmeDoc.data().ad || '',
                 aktif: true,
+                kod: null,
                 sepet: [],
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // Müşteri sayfasına yönlendir
-            const url = '/musteri?oturum=' + oturumRef.id + '&isletme=' + isletmeId;
-            window.location.href = url;
+            window.location.href = '/musteri?oturum=' + oturumRef.id + '&isletme=' + isletmeId;
         })();
     </script>
 </body>
