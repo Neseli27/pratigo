@@ -151,9 +151,11 @@
                 <p>İşletme Kayıt Formu</p>
             </div>
 
-            <div class="avm-badge">
-                <div class="avm-adi" id="avmAdi">Primemall AVM</div>
-                <div class="avm-alt">Food Court İşletme Kaydı</div>
+            <div class="form-alan">
+                <label>AVM Seçiniz *</label>
+                <select id="avmSecim" style="width:100%;padding:14px;background:#1e293b;border:2px solid #475569;border-radius:12px;color:#f8fafc;font-size:1rem;outline:none">
+                    <option value="">AVM Seçiniz...</option>
+                </select>
             </div>
 
             <div class="form-alan">
@@ -203,38 +205,38 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
     <script>
-        // Varsayılan AVM: Primemall
-        const AVM_ID = 'primemall';
-        const AVM_ADI = 'Primemall AVM';
+        let tumAvmler = [];
 
-        // AVM'yi oluştur (yoksa)
-        (async function() {
-            const avmDoc = await db.collection('avmler').doc(AVM_ID).get();
-            if (!avmDoc.exists) {
-                await db.collection('avmler').doc(AVM_ID).set({
-                    ad: AVM_ADI,
-                    slug: 'primemall',
-                    olusturma: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        })();
+        // AVM'leri Firestore'dan yükle
+        db.collection('avmler').onSnapshot(snap => {
+            tumAvmler = [];
+            snap.forEach(doc => tumAvmler.push({ id: doc.id, ...doc.data() }));
+
+            const select = document.getElementById('avmSecim');
+            select.innerHTML = '<option value="">AVM Seçiniz...</option>' +
+                tumAvmler.map(a => '<option value="' + a.id + '">' + a.ad + '</option>').join('');
+        });
 
         async function kayitOl() {
+            const avmId = document.getElementById('avmSecim').value;
             const ad = document.getElementById('isletmeAdi').value.trim();
             const sifre = document.getElementById('sifre').value.trim();
             const tanitim = document.getElementById('tanitim').value.trim();
             const yetkili = document.getElementById('yetkili').value.trim();
             const telefon = document.getElementById('telefon').value.trim();
 
+            if (!avmId) return mesajGoster('Lütfen bir AVM seçin', 'hata');
             if (!ad) return mesajGoster('İşletme adını girin', 'hata');
             if (!sifre || sifre.length < 4) return mesajGoster('Şifre en az 4 karakter olmalı', 'hata');
 
+            const avm = tumAvmler.find(a => a.id === avmId);
+            const avmAdi = avm ? avm.ad : '';
+
             document.getElementById('btnKayit').disabled = true;
 
-            // Aynı AVM'de aynı isimde var mı
             const mevcut = await db.collection('isletmeler')
                 .where('ad', '==', ad)
-                .where('avmId', '==', AVM_ID)
+                .where('avmId', '==', avmId)
                 .get();
 
             if (!mevcut.empty) {
@@ -242,27 +244,27 @@
                 return mesajGoster('Bu isimde bir işletme zaten kayıtlı', 'hata');
             }
 
-            // Varsayılan çalışma saatleri (Pazartesi-Pazar 10:00-22:00)
             const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
             const calismaSaatleri = {};
             gunler.forEach(g => {
                 calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false };
             });
 
-            const ref = await db.collection('isletmeler').add({
+            await db.collection('isletmeler').add({
                 ad: ad,
                 sifre: sifre,
-                avmId: AVM_ID,
-                avmAdi: AVM_ADI,
+                avmId: avmId,
+                avmAdi: avmAdi,
                 tanitim: tanitim,
                 yetkili: yetkili,
                 telefon: telefon,
                 calismaSaatleri: calismaSaatleri,
                 gunOzel: {},
+                durum: 'aktif',
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // Başarı ekranı
+            document.getElementById('basariMesaj').textContent = 'İşletmeniz ' + avmAdi + ' bünyesine eklendi.';
             document.getElementById('formAlani').style.display = 'none';
             document.getElementById('basariKutu').style.display = 'block';
         }

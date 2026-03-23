@@ -268,20 +268,9 @@
                 <button class="btn-kirmizi" onclick="oturumTemizle()">🧹 Eski Oturumları Temizle</button>
                 <span id="temizleSonuc" style="margin-left:12px;color:#22c55e;font-size:0.85rem"></span>
             </div>
-            <div class="panel" style="border-color:#dc2626">
-                <div class="panel-baslik" style="color:#ef4444">⚠️ Tehlikeli Bölge</div>
-                <p style="color:#64748b;font-size:0.85rem;margin-bottom:12px">Tüm AVM ve İşletme verilerini siler. Bu işlem geri alınamaz!</p>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <button class="btn-kirmizi" onclick="tumIsletmeleriSil()">🗑️ Tüm İşletmeleri Sil</button>
-                    <button class="btn-kirmizi" onclick="tumAvmleriSil()">🗑️ Tüm AVM'leri Sil</button>
-                    <button class="btn-kirmizi" onclick="tumOturumlariSil()">🗑️ Tüm Oturumları Sil</button>
-                    <button class="btn-kirmizi" onclick="tumSiparisleriSil()">🗑️ Tüm Siparişleri Sil</button>
-                </div>
-                <span id="silmeSonuc" style="display:block;margin-top:8px;color:#fbbf24;font-size:0.85rem"></span>
-            </div>
             <div class="panel">
                 <div class="panel-baslik">Sistem Bilgisi</div>
-                <p style="color:#64748b;font-size:0.85rem">PRATİGO v8 — Firebase + Vercel</p>
+                <p style="color:#64748b;font-size:0.85rem">PRATİGO v13 — Firebase + Vercel</p>
                 <p style="color:#334155;font-size:0.8rem;margin-top:4px">© 2026 PRATİGO</p>
             </div>
         </div>
@@ -424,13 +413,16 @@
                 snap.forEach(doc => tumAvmler.push({ id: doc.id, ...doc.data() }));
                 avmlerCiz();
                 filtreleriGuncelle();
+                dashboardGuncelle();
             });
 
             db.collection('isletmeler').onSnapshot(snap => {
                 tumIsletmeler = [];
                 snap.forEach(doc => tumIsletmeler.push({ id: doc.id, ...doc.data() }));
                 isletmelerCiz();
+                avmlerCiz(); // İşletme sayılarını güncelle
                 filtreleriGuncelle();
+                dashboardGuncelle();
                 oturumlariYukle();
             });
         }
@@ -438,16 +430,22 @@
         function oturumlariYukle() {
             const baslangic = donemBaslangic();
 
-            // Sadece kod üretilmiş oturumları say (kod != null)
+            // Tek where, JS'te filtrele (index sorunu olmasın)
             db.collection('oturumlar')
-                .where('olusturma', '>=', baslangic)
-                .where('kod', '!=', null)
+                .where('isletmeId', '!=', null)
                 .get()
                 .then(snap => {
                     oturumVerileri = [];
-                    snap.forEach(doc => oturumVerileri.push(doc.data()));
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        // Kod üretilmiş + dönem içindeki oturumlar
+                        if (d.kod && d.olusturma && d.olusturma.toDate() >= baslangic) {
+                            oturumVerileri.push(d);
+                        }
+                    });
                     dashboardGuncelle();
-                });
+                })
+                .catch(() => { dashboardGuncelle(); });
         }
 
         // ========== DASHBOARD ==========
@@ -800,56 +798,6 @@
             await batch.commit();
             document.getElementById('temizleSonuc').textContent = sayac + ' oturum kapatıldı';
             setTimeout(() => document.getElementById('temizleSonuc').textContent = '', 3000);
-        }
-
-        // ========== TEHLİKELİ BÖLGE ==========
-        async function koleksiyonSil(koleksiyon) {
-            let sayac = 0;
-            let snap = await db.collection(koleksiyon).limit(400).get();
-            while (!snap.empty) {
-                const batch = db.batch();
-                snap.forEach(doc => { batch.delete(doc.ref); sayac++; });
-                await batch.commit();
-                snap = await db.collection(koleksiyon).limit(400).get();
-            }
-            return sayac;
-        }
-
-        async function tumIsletmeleriSil() {
-            if (!await onayGoster('TÜM İŞLETMELER ve MENÜLERİ silinecek. Emin misiniz?', true)) return;
-            if (!await onayGoster('Bu işlem geri alınamaz! DEVAM?', true)) return;
-
-            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
-            for (const i of tumIsletmeler) {
-                const menuSnap = await db.collection('isletmeler').doc(i.id).collection('menu').get();
-                const batch = db.batch();
-                menuSnap.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-            }
-            const sayac = await koleksiyonSil('isletmeler');
-            basariBildirim(sayac + ' işletme silindi');
-        }
-
-        async function tumAvmleriSil() {
-            if (tumIsletmeler.length > 0) { hataBildirim('Önce tüm işletmeleri silin'); return; }
-            if (!await onayGoster('TÜM AVM\'LER silinecek. Emin misiniz?', true)) return;
-            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
-            const sayac = await koleksiyonSil('avmler');
-            basariBildirim(sayac + ' AVM silindi');
-        }
-
-        async function tumOturumlariSil() {
-            if (!await onayGoster('TÜM OTURUMLAR silinecek. Emin misiniz?', true)) return;
-            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
-            const sayac = await koleksiyonSil('oturumlar');
-            basariBildirim(sayac + ' oturum silindi');
-        }
-
-        async function tumSiparisleriSil() {
-            if (!await onayGoster('TÜM SİPARİŞLER silinecek. Emin misiniz?', true)) return;
-            document.getElementById('silmeSonuc').textContent = 'Siliniyor...';
-            const sayac = await koleksiyonSil('siparisler');
-            basariBildirim(sayac + ' sipariş silindi');
         }
 
         // ========== ÖZEL BİLDİRİM SİSTEMİ ==========
