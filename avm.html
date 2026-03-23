@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PRATİGO - Restoranlar</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <meta name="theme-color" content="#f97316">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        /* ÜST ALAN */
+        .ust-alan {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            text-align: center;
+            padding: 32px 16px 24px;
+            border-bottom: 1px solid #334155;
+        }
+        .avm-adi {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #f8fafc;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .avm-alt {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+        .pratigo-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            background: #334155;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: #64748b;
+            letter-spacing: 2px;
+        }
+
+        /* RESTORAN LİSTESİ */
+        .section-title {
+            padding: 20px 16px 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .restoran-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 0 16px;
+        }
+        @media (min-width: 600px) {
+            .restoran-grid { grid-template-columns: 1fr 1fr 1fr; }
+        }
+        .restoran-kart {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+        }
+        .restoran-kart:active {
+            border-color: #f97316;
+            transform: scale(0.97);
+            background: #334155;
+        }
+        .restoran-ikon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+            color: #fff;
+            font-weight: 900;
+        }
+        .restoran-ad {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #f8fafc;
+            line-height: 1.3;
+        }
+        .restoran-durum {
+            font-size: 0.75rem;
+            margin-top: 6px;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+        .restoran-durum.acik {
+            background: #14532d;
+            color: #22c55e;
+        }
+        .restoran-durum.kapali {
+            background: #450a0a;
+            color: #ef4444;
+        }
+
+        /* YÜKLEME */
+        .yukleme {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #1e293b;
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .bos-mesaj {
+            text-align: center;
+            padding: 60px 20px;
+            color: #475569;
+        }
+        .bos-mesaj .ikon { font-size: 2.5rem; margin-bottom: 12px; }
+
+        .copyright {
+            text-align: center;
+            margin-top: 32px;
+            color: #1e293b;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ust-alan">
+        <div class="avm-adi" id="avmAdi">...</div>
+        <div class="avm-alt">Restoran & Kafe</div>
+        <div class="pratigo-badge">PRATİGO</div>
+    </div>
+
+    <div id="yukleme" class="yukleme">
+        <div class="spinner"></div>
+        <p style="color:#64748b;font-size:0.9rem">Restoranlar yükleniyor...</p>
+    </div>
+
+    <div id="icerik" style="display:none">
+        <p class="section-title">Bir restoran seçin</p>
+        <div class="restoran-grid" id="restoranGrid"></div>
+    </div>
+
+    <div id="bosMesaj" class="bos-mesaj" style="display:none">
+        <div class="ikon">🍽️</div>
+        <p>Henüz kayıtlı restoran bulunmuyor.</p>
+    </div>
+
+    <p class="copyright">© 2026 PRATİGO</p>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const avmId = params.get('id') || 'primemall';
+
+        // AVM bilgisini çek
+        db.collection('avmler').doc(avmId).get().then(doc => {
+            if (doc.exists) {
+                document.getElementById('avmAdi').textContent = doc.data().ad || 'AVM';
+            } else {
+                document.getElementById('avmAdi').textContent = 'Primemall AVM';
+            }
+        });
+
+        // İşletmeleri dinle (anlık güncelleme)
+        db.collection('isletmeler')
+            .where('avmId', '==', avmId)
+            .onSnapshot(snap => {
+                document.getElementById('yukleme').style.display = 'none';
+
+                const isletmeler = [];
+                snap.forEach(doc => isletmeler.push({ id: doc.id, ...doc.data() }));
+
+                if (isletmeler.length === 0) {
+                    document.getElementById('bosMesaj').style.display = 'block';
+                    document.getElementById('icerik').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('bosMesaj').style.display = 'none';
+                document.getElementById('icerik').style.display = 'block';
+
+                const grid = document.getElementById('restoranGrid');
+                grid.innerHTML = isletmeler.map(i => {
+                    const harf = (i.ad || '?').charAt(0).toUpperCase();
+                    const acikMi = isletmeAcikMi(i);
+                    return `
+                    <div class="restoran-kart" onclick="restoranSec('${i.id}')">
+                        <div class="restoran-ikon">${harf}</div>
+                        <div class="restoran-ad">${i.ad}</div>
+                        <div class="restoran-durum ${acikMi ? 'acik' : 'kapali'}">${acikMi ? '● Açık' : '● Kapalı'}</div>
+                    </div>
+                    `;
+                }).join('');
+            });
+
+        function isletmeAcikMi(isletme) {
+            const cs = isletme.calismaSaatleri;
+            if (!cs) return true; // Saat tanımlamamışsa açık say
+
+            const simdi = new Date();
+            const gunler = ['pazar','pazartesi','sali','carsamba','persembe','cuma','cumartesi'];
+            const bugunkiGun = gunler[simdi.getDay()];
+            const tarih = simdi.toISOString().split('T')[0];
+
+            let gunVerisi = null;
+            if (isletme.gunOzel && isletme.gunOzel[tarih]) {
+                gunVerisi = isletme.gunOzel[tarih];
+            } else {
+                gunVerisi = cs[bugunkiGun];
+            }
+
+            if (!gunVerisi || gunVerisi.kapali) return false;
+
+            const saat = String(simdi.getHours()).padStart(2, '0') + ':' + String(simdi.getMinutes()).padStart(2, '0');
+            return saat >= gunVerisi.acilis && saat < gunVerisi.kapanis;
+        }
+
+        async function restoranSec(isletmeId) {
+            // Tıklanan kartı vurgula
+            event.currentTarget.style.borderColor = '#f97316';
+            event.currentTarget.style.background = '#334155';
+
+            // Oturum oluştur
+            const isletmeDoc = await db.collection('isletmeler').doc(isletmeId).get();
+            const oturumRef = await db.collection('oturumlar').add({
+                isletmeId: isletmeId,
+                isletmeAdi: isletmeDoc.data().ad || '',
+                avmId: avmId,
+                aktif: true,
+                kod: null,
+                sepet: [],
+                olusturma: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            window.location.href = '/musteri?oturum=' + oturumRef.id + '&isletme=' + isletmeId + '&avm=' + avmId;
+        }
+    </script>
+</body>
+</html>

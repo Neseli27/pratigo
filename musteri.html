@@ -454,6 +454,25 @@
         }
         .bos-bilgi .ikon { font-size: 3rem; margin-bottom: 12px; }
 
+        /* ÇIKIŞ BUTONU */
+        .btn-cikis {
+            position: absolute;
+            top: 50%;
+            left: 16px;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #334155;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* SİPARİŞ NOTU */
         .siparis-not-input {
             width: 100%;
@@ -547,6 +566,7 @@
 
     <!-- KARŞILAMA -->
     <div class="karsilama" style="position:relative">
+        <button class="btn-cikis" onclick="cikisYap()" title="Çıkış">←</button>
         <div class="isletme-adi" id="isletmeAdi">...</div>
         <div class="hos-geldin">Hoş Geldiniz</div>
         <div class="pratigo-badge">PRATİGO</div>
@@ -638,9 +658,24 @@
         const params = new URLSearchParams(window.location.search);
         const oturumId = params.get('oturum');
         const isletmeId = params.get('isletme');
+        const avmId = params.get('avm');
 
         if (!oturumId || !isletmeId) {
             document.body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#ef4444;font-size:1.2rem;">Geçersiz oturum. QR kodu tekrar okutun.</div>';
+        }
+
+        function cikisYap() {
+            // Oturumu kapat
+            if (oturumId) {
+                db.collection('oturumlar').doc(oturumId).update({ aktif: false }).catch(() => {});
+            }
+            // AVM'den geldiyse veya işletme AVM'ye bağlıysa AVM sayfasına dön
+            const hedefAvm = avmId || (isletmeVerisi && isletmeVerisi.avmId);
+            if (hedefAvm) {
+                window.location.href = '/avm?id=' + hedefAvm;
+            } else {
+                window.location.href = '/';
+            }
         }
 
         let sepet = [];

@@ -130,6 +130,13 @@
         (async function() {
             const params = new URLSearchParams(window.location.search);
             const isletmeId = params.get('isletme');
+            const avmId = params.get('avm');
+
+            // AVM QR'ı ile gelen → AVM sayfasına yönlendir
+            if (avmId) {
+                window.location.href = '/avm?id=' + avmId;
+                return;
+            }
 
             // QR parametresi yoksa → landing göster
             if (!isletmeId) {
