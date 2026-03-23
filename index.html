@@ -143,10 +143,12 @@
             try {
                 const isletmeDoc = await db.collection('isletmeler').doc(isletmeId).get();
                 if (!isletmeDoc.exists) {
-                    document.getElementById('landing').style.display = 'block';
                     document.getElementById('yukleme').style.display = 'none';
+                    document.getElementById('landing').style.display = 'block';
                     return;
                 }
+
+                document.querySelector('.yukleme-text').textContent = isletmeDoc.data().ad || 'Yükleniyor...';
 
                 const oturumRef = await db.collection('oturumlar').add({
                     isletmeId: isletmeId,
@@ -159,8 +161,9 @@
 
                 window.location.href = '/musteri?oturum=' + oturumRef.id + '&isletme=' + isletmeId;
             } catch(e) {
-                document.getElementById('landing').style.display = 'block';
-                document.getElementById('yukleme').style.display = 'none';
+                console.error('PRATİGO hata:', e);
+                document.querySelector('.yukleme-text').textContent = 'Bağlantı hatası. Tekrar deneyin.';
+                document.querySelector('.spinner').style.borderTopColor = '#ef4444';
             }
         })();
     </script>
