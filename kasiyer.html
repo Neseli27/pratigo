@@ -27,19 +27,39 @@
         /* ÜST BAR */
         .topbar {
             background: #1e293b;
-            padding: 10px 16px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
             border-bottom: 2px solid #334155;
         }
-        .topbar .brand {
+        .topbar .isletme-adi {
+            flex: 1;
             font-weight: 900;
             font-size: 1.4rem;
             color: #f97316;
-            letter-spacing: 3px;
+            text-align: center;
+            letter-spacing: 1px;
         }
-        .topbar .isletme { color: #94a3b8; font-size: 0.9rem; }
+        .topbar .sag-grup {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .topbar .mini-brand {
+            font-weight: 800;
+            font-size: 0.7rem;
+            color: #475569;
+            letter-spacing: 2px;
+        }
+        .topbar .btn-cikis {
+            background: #334155;
+            border: none;
+            color: #94a3b8;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
 
         /* SEKMELER */
         .tabs {
@@ -585,9 +605,11 @@
 
     <!-- ÜST BAR -->
     <div class="topbar">
-        <span class="brand">PRATİGO</span>
-        <span class="isletme" id="topIsletmeAdi"></span>
-        <button onclick="cikisYap()" style="background:#334155;border:none;color:#94a3b8;padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer">Çıkış</button>
+        <span class="isletme-adi" id="topIsletmeAdi"></span>
+        <div class="sag-grup">
+            <span class="mini-brand">PRATİGO</span>
+            <button class="btn-cikis" onclick="cikisYap()">Çıkış</button>
+        </div>
     </div>
 
     <!-- SEKMELER -->
