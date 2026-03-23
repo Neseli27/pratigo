@@ -836,15 +836,28 @@
             let ilkYukleme = true;
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
-                .where('durum', 'in', ['onaylandi', 'odeme_bekliyor', 'hazirlaniyor'])
                 .onSnapshot(snap => {
+                    // JS'te durum filtrele
+                    const aktifDurumlar = ['onaylandi', 'odeme_bekliyor', 'hazirlaniyor'];
+                    const filtrelenmis = [];
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        if (aktifDurumlar.includes(d.durum)) filtrelenmis.push(doc);
+                    });
+
                     if (!ilkYukleme) {
                         snap.docChanges().forEach(change => {
-                            if (change.type === 'added') kasiyerBildirimSesi();
+                            if (change.type === 'added' && aktifDurumlar.includes(change.doc.data().durum)) {
+                                kasiyerBildirimSesi();
+                            }
                         });
                     }
                     ilkYukleme = false;
-                    kuyrukCiz(snap);
+
+                    // Sahte snapshot objesi oluştur
+                    kuyrukCiz({ forEach: cb => filtrelenmis.forEach(d => cb(d)) });
+                }, err => {
+                    console.error('Sipariş dinleme hatası:', err);
                 });
 
             // Bugünün geçmişini dinle
@@ -1076,42 +1089,45 @@
 
         // ========== TAHMİNİ BEKLEME SÜRESİ HESAPLAMA ==========
         async function ortalamaGuncelle() {
-            // Son tamamlanan siparişleri al (basit sorgu, index gerektirmez)
-            const snap = await db.collection('siparisler')
-                .where('isletmeId', '==', isletmeId)
-                .where('durum', '==', 'hazir')
-                .orderBy('hazirZaman', 'desc')
-                .limit(20)
-                .get();
+            try {
+                // Basit sorgu: sadece isletmeId, durum JS'te filtrelenir
+                const snap = await db.collection('siparisler')
+                    .where('isletmeId', '==', isletmeId)
+                    .orderBy('olusturma', 'desc')
+                    .limit(50)
+                    .get();
 
-            // beklemeDk değeri olan siparişleri filtrele
-            const sureler = [];
-            snap.forEach(doc => {
-                const dk = doc.data().beklemeDk;
-                if (dk && dk > 0 && dk < 120) sureler.push(dk);
-            });
-
-            if (sureler.length < 3) {
-                await db.collection('isletmeler').doc(isletmeId).update({
-                    tapiSure: null,
-                    tapiVeriSayisi: sureler.length
+                const sureler = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if ((d.durum === 'hazir' || d.durum === 'teslim_edildi') && d.beklemeDk && d.beklemeDk > 0 && d.beklemeDk < 120) {
+                        sureler.push(d.beklemeDk);
+                    }
                 });
-                return;
+
+                // Son 20 geçerli süre yeterli
+                const son20 = sureler.slice(0, 20);
+
+                if (son20.length < 3) {
+                    await db.collection('isletmeler').doc(isletmeId).update({
+                        tapiSure: null,
+                        tapiVeriSayisi: son20.length
+                    });
+                    return;
+                }
+
+                son20.sort((a, b) => a - b);
+                const temiz = son20.length > 5 ? son20.slice(1, -1) : son20;
+                const ortalama = Math.round(temiz.reduce((t, s) => t + s, 0) / temiz.length);
+
+                await db.collection('isletmeler').doc(isletmeId).update({
+                    tapiSure: ortalama,
+                    tapiVeriSayisi: son20.length,
+                    tapiSonGuncelleme: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(e) {
+                console.error('Ortalama güncelleme hatası:', e);
             }
-
-            // Uç değerleri at (5'ten fazla veri varsa en düşük ve en yüksek çıkar)
-            sureler.sort((a, b) => a - b);
-            const temiz = sureler.length > 5
-                ? sureler.slice(1, -1)
-                : sureler;
-
-            const ortalama = Math.round(temiz.reduce((t, s) => t + s, 0) / temiz.length);
-
-            await db.collection('isletmeler').doc(isletmeId).update({
-                tapiSure: ortalama,
-                tapiVeriSayisi: sureler.length,
-                tapiSonGuncelleme: firebase.firestore.FieldValue.serverTimestamp()
-            });
         }
 
         // ========== MENÜ YÖNETİMİ ==========
@@ -1333,15 +1349,24 @@
             const bugun = new Date();
             bugun.setHours(0, 0, 0, 0);
 
+            // Basit sorgu: sadece isletmeId + olusturma filtresi, durum JS'te filtrelenir
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
-                .where('durum', 'in', ['hazir', 'teslim_edildi'])
                 .where('olusturma', '>=', bugun)
                 .orderBy('olusturma', 'desc')
                 .onSnapshot(snap => {
                     const siparisler = [];
-                    snap.forEach(doc => siparisler.push({ id: doc.id, ...doc.data() }));
+                    snap.forEach(doc => {
+                        const d = { id: doc.id, ...doc.data() };
+                        if (d.durum === 'hazir' || d.durum === 'teslim_edildi') {
+                            siparisler.push(d);
+                        }
+                    });
                     gecmisCiz(siparisler);
+                }, err => {
+                    console.error('Geçmiş sorgu hatası:', err);
+                    // Index yoksa hata yakala, boş göster
+                    gecmisCiz([]);
                 });
         }
 
