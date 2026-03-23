@@ -4,6 +4,7 @@
     { "source": "/avm", "destination": "/avm.html" },
     { "source": "/musteri", "destination": "/musteri.html" },
     { "source": "/kasiyer", "destination": "/kasiyer.html" },
-    { "source": "/kayit", "destination": "/kayit.html" }
+    { "source": "/kayit", "destination": "/kayit.html" },
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRATİGO - Süper Admin</title>
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#0a0f1a; color:#e2e8f0; min-height:100vh; }
+
+        /* GİRİŞ */
+        .giris-overlay { position:fixed; inset:0; background:#0a0f1a; z-index:500; display:flex; align-items:center; justify-content:center; }
+        .giris-kutu { text-align:center; max-width:360px; padding:32px; width:100%; }
+        .giris-kutu .logo { font-size:2rem; font-weight:900; color:#f97316; letter-spacing:4px; margin-bottom:4px; }
+        .giris-kutu .alt { color:#475569; margin-bottom:28px; font-size:0.85rem; }
+        .giris-kutu input { width:100%; padding:14px; background:#1e293b; border:2px solid #334155; border-radius:10px; color:#e2e8f0; font-size:1rem; outline:none; margin-bottom:12px; }
+        .giris-kutu input:focus { border-color:#f97316; }
+        .giris-kutu .btn { width:100%; padding:14px; background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; }
+        .giris-hata { color:#ef4444; font-size:0.85rem; margin-top:8px; display:none; }
+
+        /* LAYOUT */
+        .sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:#111827; border-right:1px solid #1f2937; padding:20px 0; overflow-y:auto; z-index:10; }
+        .sidebar .logo { padding:0 20px 20px; font-size:1.2rem; font-weight:900; color:#f97316; letter-spacing:3px; border-bottom:1px solid #1f2937; margin-bottom:12px; }
+        .sidebar .logo span { display:block; font-size:0.7rem; color:#475569; font-weight:400; letter-spacing:1px; margin-top:2px; }
+        .nav-btn { display:flex; align-items:center; gap:10px; width:100%; padding:12px 20px; background:none; border:none; color:#94a3b8; font-size:0.9rem; cursor:pointer; text-align:left; transition:all 0.15s; }
+        .nav-btn:hover { background:#1f2937; color:#e2e8f0; }
+        .nav-btn.aktif { background:#1e293b; color:#f97316; border-right:3px solid #f97316; }
+        .nav-btn .ikon { font-size:1.1rem; width:24px; text-align:center; }
+        .main { margin-left:220px; padding:24px; }
+        @media(max-width:768px) {
+            .sidebar { width:60px; } .sidebar .nav-text,.sidebar .logo span { display:none; } .sidebar .logo { font-size:0.9rem; padding:0 8px 16px; text-align:center; }
+            .nav-btn { padding:14px 0; justify-content:center; } .nav-btn .ikon { width:auto; }
+            .main { margin-left:60px; padding:16px; }
+        }
+
+        /* PANEL ORTAK */
+        .sayfa { display:none; }
+        .sayfa.aktif { display:block; }
+        .sayfa-baslik { font-size:1.4rem; font-weight:800; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+        .panel { background:#1e293b; border-radius:12px; padding:20px; margin-bottom:16px; border:1px solid #334155; }
+        .panel-baslik { font-size:1rem; font-weight:700; margin-bottom:14px; color:#94a3b8; }
+        .form-satir { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+        .form-satir input,.form-satir select,.form-satir textarea { flex:1; min-width:120px; padding:10px 12px; background:#0f172a; border:2px solid #334155; border-radius:8px; color:#e2e8f0; font-size:0.9rem; outline:none; font-family:inherit; }
+        .form-satir input:focus,.form-satir select:focus,.form-satir textarea:focus { border-color:#f97316; }
+        .form-satir textarea { min-height:60px; resize:vertical; }
+        .btn-turuncu { padding:10px 20px; background:#f97316; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; }
+        .btn-mavi { padding:10px 20px; background:#2563eb; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; }
+        .btn-kirmizi { padding:8px 16px; background:#dc2626; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
+        .btn-yesil { padding:8px 16px; background:#16a34a; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
+        .btn-gri { padding:8px 16px; background:#475569; color:#fff; border:none; border-radius:8px; font-weight:600; font-size:0.85rem; cursor:pointer; }
+
+        /* TABLO */
+        .tablo { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        .tablo th { text-align:left; padding:10px 12px; background:#0f172a; color:#64748b; font-weight:600; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #334155; }
+        .tablo td { padding:10px 12px; border-bottom:1px solid #1f2937; }
+        .tablo tr:hover td { background:#111827; }
+        .badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; }
+        .badge-yesil { background:#14532d; color:#22c55e; }
+        .badge-kirmizi { background:#450a0a; color:#ef4444; }
+        .badge-mavi { background:#172554; color:#3b82f6; }
+
+        /* İSTATİSTİK KARTLARI */
+        .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:20px; }
+        .stat-kart { background:#0f172a; border-radius:10px; padding:16px; text-align:center; border:1px solid #1f2937; }
+        .stat-kart .deger { font-size:2rem; font-weight:900; margin-bottom:2px; }
+        .stat-kart .etiket { font-size:0.8rem; color:#64748b; }
+
+        /* QR MODAL */
+        .qr-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; display:none; align-items:center; justify-content:center; }
+        .qr-modal-kutu { background:#1e293b; border-radius:16px; padding:28px; text-align:center; max-width:360px; width:90%; }
+        .qr-modal-kutu h3 { margin-bottom:16px; color:#f97316; }
+        .qr-modal-kutu canvas { max-width:250px; width:100%; background:#fff; border-radius:12px; padding:16px; }
+        .qr-modal-kutu .url-text { color:#64748b; font-size:0.75rem; margin-top:12px; word-break:break-all; }
+        .qr-modal-kutu .btn-group { display:flex; gap:8px; margin-top:16px; justify-content:center; }
+
+        /* SCROLL */
+        .scroll-x { overflow-x:auto; }
+    </style>
+</head>
+<body>
+
+    <!-- GİRİŞ -->
+    <div class="giris-overlay" id="girisOverlay">
+        <div class="giris-kutu">
+            <div class="logo">PRATİGO</div>
+            <p class="alt">Süper Admin Paneli</p>
+            <input type="password" id="adminSifre" placeholder="Admin Şifresi" onkeydown="if(event.key==='Enter')adminGiris()">
+            <button class="btn" onclick="adminGiris()">Giriş</button>
+            <p class="giris-hata" id="girisHata"></p>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar" style="display:none">
+        <div class="logo">PRATİGO <span>Süper Admin</span></div>
+        <button class="nav-btn aktif" onclick="sayfaAc('dashboard')"><span class="ikon">📊</span><span class="nav-text">Dashboard</span></button>
+        <button class="nav-btn" onclick="sayfaAc('avmler')"><span class="ikon">🏬</span><span class="nav-text">AVM'ler</span></button>
+        <button class="nav-btn" onclick="sayfaAc('isletmeler')"><span class="ikon">🍽️</span><span class="nav-text">İşletmeler</span></button>
+        <button class="nav-btn" onclick="sayfaAc('siparisler')"><span class="ikon">📋</span><span class="nav-text">Siparişler</span></button>
+        <button class="nav-btn" onclick="sayfaAc('raporlar')"><span class="ikon">📈</span><span class="nav-text">Raporlar</span></button>
+        <button class="nav-btn" onclick="sayfaAc('ayarlar')"><span class="ikon">⚙️</span><span class="nav-text">Ayarlar</span></button>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main" id="mainContent" style="display:none">
+
+        <!-- DASHBOARD -->
+        <div class="sayfa aktif" id="sayfa-dashboard">
+            <div class="sayfa-baslik">📊 Dashboard</div>
+            <div class="stat-grid" id="dashStats"></div>
+            <div class="panel">
+                <div class="panel-baslik">Son Siparişler</div>
+                <div class="scroll-x">
+                    <table class="tablo" id="sonSiparisler">
+                        <thead><tr><th>Saat</th><th>İşletme</th><th>Kod</th><th>Tutar</th><th>Durum</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVM'LER -->
+        <div class="sayfa" id="sayfa-avmler">
+            <div class="sayfa-baslik">🏬 AVM Yönetimi</div>
+            <div class="panel">
+                <div class="panel-baslik">Yeni AVM Ekle</div>
+                <div class="form-satir">
+                    <input type="text" id="yeniAvmAd" placeholder="AVM Adı (örn: Primemall AVM)">
+                    <input type="text" id="yeniAvmSlug" placeholder="URL kodu (örn: primemall)">
+                    <button class="btn-turuncu" onclick="avmEkle()">+ Ekle</button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-baslik">Kayıtlı AVM'ler</div>
+                <div class="scroll-x">
+                    <table class="tablo" id="avmTablosu">
+                        <thead><tr><th>AVM Adı</th><th>Slug</th><th>İşletme Sayısı</th><th>QR Kod</th><th>İşlem</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- İŞLETMELER -->
+        <div class="sayfa" id="sayfa-isletmeler">
+            <div class="sayfa-baslik">🍽️ İşletme Yönetimi</div>
+            <div class="panel">
+                <div class="form-satir">
+                    <select id="isletmeFiltre" onchange="isletmeleriFiltrele()">
+                        <option value="hepsi">Tüm AVM'ler</option>
+                    </select>
+                </div>
+                <div class="scroll-x">
+                    <table class="tablo" id="isletmeTablosu">
+                        <thead><tr><th>İşletme</th><th>AVM</th><th>Kayıt</th><th>Menü</th><th>Durum</th><th>İşlem</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SİPARİŞLER -->
+        <div class="sayfa" id="sayfa-siparisler">
+            <div class="sayfa-baslik">📋 Sipariş Takibi</div>
+            <div class="panel">
+                <div class="form-satir">
+                    <select id="siparisFiltre" onchange="siparisleriFiltrele()">
+                        <option value="hepsi">Tüm Durumlar</option>
+                        <option value="onay_bekliyor">Onay Bekliyor</option>
+                        <option value="onaylandi">Onaylandı</option>
+                        <option value="hazirlaniyor">Hazırlanıyor</option>
+                        <option value="hazir">Hazır</option>
+                        <option value="reddedildi">Reddedildi</option>
+                    </select>
+                    <select id="siparisAvmFiltre" onchange="siparisleriFiltrele()">
+                        <option value="hepsi">Tüm İşletmeler</option>
+                    </select>
+                </div>
+                <div class="scroll-x">
+                    <table class="tablo" id="siparisTablosu">
+                        <thead><tr><th>Tarih</th><th>İşletme</th><th>Kod</th><th>Ürünler</th><th>Tutar</th><th>Not</th><th>Durum</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RAPORLAR -->
+        <div class="sayfa" id="sayfa-raporlar">
+            <div class="sayfa-baslik">📈 Raporlar</div>
+            <div class="stat-grid" id="raporStats"></div>
+            <div class="panel">
+                <div class="panel-baslik">İşletme Bazlı Performans (Bugün)</div>
+                <div class="scroll-x">
+                    <table class="tablo" id="raporTablosu">
+                        <thead><tr><th>İşletme</th><th>AVM</th><th>Sipariş</th><th>Ciro</th><th>Ortalama</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- AYARLAR -->
+        <div class="sayfa" id="sayfa-ayarlar">
+            <div class="sayfa-baslik">⚙️ Ayarlar</div>
+            <div class="panel">
+                <div class="panel-baslik">Admin Şifresini Değiştir</div>
+                <div class="form-satir">
+                    <input type="password" id="yeniAdminSifre" placeholder="Yeni şifre">
+                    <button class="btn-turuncu" onclick="adminSifreDegistir()">Değiştir</button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-baslik">Oturum Temizliği</div>
+                <p style="color:#64748b;font-size:0.85rem;margin-bottom:12px">2 saatten eski aktif oturumları kapatır. 3 haneli kodlar serbest kalır.</p>
+                <button class="btn-kirmizi" onclick="oturumTemizle()">🧹 Eski Oturumları Temizle</button>
+                <span id="temizleSonuc" style="margin-left:12px;color:#22c55e;font-size:0.85rem"></span>
+            </div>
+            <div class="panel">
+                <div class="panel-baslik">Sistem Bilgisi</div>
+                <p style="color:#64748b;font-size:0.85rem">PRATİGO v6 — Firebase + Vercel</p>
+                <p style="color:#334155;font-size:0.8rem;margin-top:4px">© 2026 PRATİGO</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR MODAL -->
+    <div class="qr-modal" id="qrModal" onclick="if(event.target===this)this.style.display='none'">
+        <div class="qr-modal-kutu">
+            <h3 id="qrBaslik">QR Kod</h3>
+            <canvas id="qrModalCanvas"></canvas>
+            <p class="url-text" id="qrUrl"></p>
+            <div class="btn-group">
+                <button class="btn-turuncu" onclick="qrModalIndir()">📥 İndir</button>
+                <button class="btn-gri" onclick="document.getElementById('qrModal').style.display='none'">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script>
+        const ADMIN_SIFRE_KEY = 'pratigo_admin';
+        let tumAvmler = [];
+        let tumIsletmeler = [];
+        let tumSiparisler = [];
+
+        // ========== GİRİŞ ==========
+        async function adminGiris() {
+            const sifre = document.getElementById('adminSifre').value.trim();
+            if (!sifre) return;
+
+            const doc = await db.collection('sistem').doc('admin').get();
+            if (!doc.exists) {
+                // İlk kurulum — şifreyi oluştur
+                await db.collection('sistem').doc('admin').set({ sifre: sifre });
+                basariliGiris();
+                return;
+            }
+
+            if (doc.data().sifre === sifre) {
+                basariliGiris();
+            } else {
+                const el = document.getElementById('girisHata');
+                el.textContent = 'Şifre hatalı';
+                el.style.display = 'block';
+            }
+        }
+
+        function basariliGiris() {
+            document.getElementById('girisOverlay').style.display = 'none';
+            document.getElementById('sidebar').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'block';
+            verileriYukle();
+        }
+
+        // ========== NAVİGASYON ==========
+        function sayfaAc(isim) {
+            document.querySelectorAll('.sayfa').forEach(s => s.classList.remove('aktif'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('aktif'));
+            document.getElementById('sayfa-' + isim).classList.add('aktif');
+            event.currentTarget.classList.add('aktif');
+        }
+
+        // ========== VERİ YÜKLEME ==========
+        function verileriYukle() {
+            // AVM'ler
+            db.collection('avmler').onSnapshot(snap => {
+                tumAvmler = [];
+                snap.forEach(doc => tumAvmler.push({ id: doc.id, ...doc.data() }));
+                avmlerCiz();
+                filtreleriGuncelle();
+            });
+
+            // İşletmeler
+            db.collection('isletmeler').onSnapshot(snap => {
+                tumIsletmeler = [];
+                snap.forEach(doc => tumIsletmeler.push({ id: doc.id, ...doc.data() }));
+                isletmelerCiz();
+                filtreleriGuncelle();
+                dashboardGuncelle();
+            });
+
+            // Bugünün siparişleri
+            const bugun = new Date();
+            bugun.setHours(0, 0, 0, 0);
+            db.collection('siparisler').where('olusturma', '>=', bugun).orderBy('olusturma', 'desc').onSnapshot(snap => {
+                tumSiparisler = [];
+                snap.forEach(doc => tumSiparisler.push({ id: doc.id, ...doc.data() }));
+                siparislerCiz();
+                dashboardGuncelle();
+                raporlarCiz();
+            });
+        }
+
+        // ========== DASHBOARD ==========
+        function dashboardGuncelle() {
+            const toplam = tumSiparisler.length;
+            const ciro = tumSiparisler.filter(s => s.durum === 'hazir').reduce((t, s) => t + (s.toplam || 0), 0);
+            const aktifOturum = tumSiparisler.filter(s => ['onaylandi','hazirlaniyor','odeme_bekliyor'].includes(s.durum)).length;
+
+            document.getElementById('dashStats').innerHTML = `
+                <div class="stat-kart"><div class="deger" style="color:#f97316">${tumAvmler.length}</div><div class="etiket">AVM</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#3b82f6">${tumIsletmeler.length}</div><div class="etiket">İşletme</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#22c55e">${toplam}</div><div class="etiket">Bugün Sipariş</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#f97316">${ciro} ₺</div><div class="etiket">Bugün Ciro</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#eab308">${aktifOturum}</div><div class="etiket">Aktif Sipariş</div></div>
+            `;
+
+            // Son siparişler
+            const son10 = tumSiparisler.slice(0, 10);
+            document.querySelector('#sonSiparisler tbody').innerHTML = son10.map(s => {
+                const saat = s.olusturma ? new Date(s.olusturma.toDate()).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' }) : '--:--';
+                const isletme = tumIsletmeler.find(i => i.id === s.isletmeId);
+                return `<tr>
+                    <td>${saat}</td>
+                    <td>${isletme ? isletme.ad : '-'}</td>
+                    <td style="font-weight:700;color:#f97316">${s.musteriKod || '-'}</td>
+                    <td>${s.toplam || 0} ₺</td>
+                    <td>${durumBadge(s.durum)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function durumBadge(durum) {
+            const map = {
+                onay_bekliyor: ['Onay Bekliyor', 'badge-mavi'],
+                onaylandi: ['Onaylandı', 'badge-mavi'],
+                odeme_bekliyor: ['Ödeme Bekliyor', 'badge-mavi'],
+                hazirlaniyor: ['Hazırlanıyor', 'badge-yesil'],
+                hazir: ['Hazır', 'badge-yesil'],
+                reddedildi: ['Reddedildi', 'badge-kirmizi']
+            };
+            const [text, cls] = map[durum] || [durum, 'badge-mavi'];
+            return `<span class="badge ${cls}">${text}</span>`;
+        }
+
+        // ========== AVM'LER ==========
+        async function avmEkle() {
+            const ad = document.getElementById('yeniAvmAd').value.trim();
+            let slug = document.getElementById('yeniAvmSlug').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!ad || !slug) return alert('AVM adı ve URL kodu girin');
+
+            const mevcut = await db.collection('avmler').doc(slug).get();
+            if (mevcut.exists) return alert('Bu URL kodu zaten kullanılıyor');
+
+            await db.collection('avmler').doc(slug).set({
+                ad: ad,
+                slug: slug,
+                olusturma: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            document.getElementById('yeniAvmAd').value = '';
+            document.getElementById('yeniAvmSlug').value = '';
+        }
+
+        function avmlerCiz() {
+            document.querySelector('#avmTablosu tbody').innerHTML = tumAvmler.map(a => {
+                const isletmeSayisi = tumIsletmeler.filter(i => i.avmId === a.id).length;
+                return `<tr>
+                    <td style="font-weight:700">${a.ad}</td>
+                    <td style="color:#64748b">${a.slug || a.id}</td>
+                    <td><span class="badge badge-mavi">${isletmeSayisi}</span></td>
+                    <td><button class="btn-mavi" onclick="avmQrGoster('${a.id}','${a.ad}')">📱 QR</button></td>
+                    <td><button class="btn-kirmizi" onclick="avmSil('${a.id}')">Sil</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function avmQrGoster(avmId, avmAd) {
+            const url = window.location.origin + '/?avm=' + avmId;
+            document.getElementById('qrBaslik').textContent = avmAd + ' — QR Kod';
+            document.getElementById('qrUrl').textContent = url;
+            new QRious({
+                element: document.getElementById('qrModalCanvas'),
+                value: url, size: 300, foreground: '#f97316', background: '#ffffff', level: 'H'
+            });
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+
+        function qrModalIndir() {
+            const canvas = document.getElementById('qrModalCanvas');
+            const link = document.createElement('a');
+            link.download = 'pratigo-qr.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        async function avmSil(id) {
+            const isletmeSayisi = tumIsletmeler.filter(i => i.avmId === id).length;
+            if (isletmeSayisi > 0) return alert('Bu AVM\'de ' + isletmeSayisi + ' işletme var. Önce işletmeleri silin veya taşıyın.');
+            if (!confirm('Bu AVM\'yi silmek istediğinize emin misiniz?')) return;
+            await db.collection('avmler').doc(id).delete();
+        }
+
+        // ========== İŞLETMELER ==========
+        function isletmelerCiz() {
+            const filtre = document.getElementById('isletmeFiltre').value;
+            let liste = tumIsletmeler;
+            if (filtre !== 'hepsi') liste = liste.filter(i => i.avmId === filtre);
+
+            document.querySelector('#isletmeTablosu tbody').innerHTML = liste.map(i => {
+                const avm = tumAvmler.find(a => a.id === i.avmId);
+                const kayitTarih = i.olusturma ? new Date(i.olusturma.toDate()).toLocaleDateString('tr-TR') : '-';
+                return `<tr>
+                    <td style="font-weight:700">${i.ad}</td>
+                    <td style="color:#64748b">${avm ? avm.ad : (i.avmId || '-')}</td>
+                    <td style="color:#475569;font-size:0.85rem">${kayitTarih}</td>
+                    <td><button class="btn-gri" onclick="menuSayisi('${i.id}')" id="menu_${i.id}">...</button></td>
+                    <td><span class="badge badge-yesil">Aktif</span></td>
+                    <td>
+                        <button class="btn-mavi" onclick="isletmeQrGoster('${i.id}','${i.ad}')" style="margin-right:4px">QR</button>
+                        <button class="btn-kirmizi" onclick="isletmeSil('${i.id}')">Sil</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // Menü sayılarını yükle
+            liste.forEach(i => {
+                db.collection('isletmeler').doc(i.id).collection('menu').get().then(snap => {
+                    const el = document.getElementById('menu_' + i.id);
+                    if (el) el.textContent = snap.size + ' ürün';
+                });
+            });
+        }
+
+        function isletmeleriFiltrele() { isletmelerCiz(); }
+
+        function isletmeQrGoster(id, ad) {
+            const url = window.location.origin + '/?isletme=' + id;
+            document.getElementById('qrBaslik').textContent = ad + ' — QR Kod';
+            document.getElementById('qrUrl').textContent = url;
+            new QRious({
+                element: document.getElementById('qrModalCanvas'),
+                value: url, size: 300, foreground: '#f97316', background: '#ffffff', level: 'H'
+            });
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+
+        async function isletmeSil(id) {
+            if (!confirm('Bu işletmeyi silmek istediğinize emin misiniz? Menüsü ve siparişleri de silinecek.')) return;
+            await db.collection('isletmeler').doc(id).delete();
+        }
+
+        async function menuSayisi(id) { /* loaded inline above */ }
+
+        // ========== SİPARİŞLER ==========
+        function siparislerCiz() {
+            const durumFiltre = document.getElementById('siparisFiltre').value;
+            const avmFiltre = document.getElementById('siparisAvmFiltre').value;
+            let liste = tumSiparisler;
+            if (durumFiltre !== 'hepsi') liste = liste.filter(s => s.durum === durumFiltre);
+            if (avmFiltre !== 'hepsi') liste = liste.filter(s => s.isletmeId === avmFiltre);
+
+            document.querySelector('#siparisTablosu tbody').innerHTML = liste.slice(0, 50).map(s => {
+                const tarih = s.olusturma ? new Date(s.olusturma.toDate()).toLocaleString('tr-TR', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' }) : '-';
+                const isletme = tumIsletmeler.find(i => i.id === s.isletmeId);
+                const urunler = (s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ');
+                return `<tr>
+                    <td style="white-space:nowrap;font-size:0.85rem;color:#64748b">${tarih}</td>
+                    <td>${isletme ? isletme.ad : '-'}</td>
+                    <td style="font-weight:700;color:#f97316">${s.musteriKod || '-'}</td>
+                    <td style="font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">${urunler}</td>
+                    <td style="font-weight:700">${s.toplam || 0} ₺</td>
+                    <td style="font-size:0.8rem;color:#fbbf24;max-width:120px;overflow:hidden;text-overflow:ellipsis">${s.not || '-'}</td>
+                    <td>${durumBadge(s.durum)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function siparisleriFiltrele() { siparislerCiz(); }
+
+        // ========== RAPORLAR ==========
+        function raporlarCiz() {
+            const tamamlanan = tumSiparisler.filter(s => s.durum === 'hazir');
+            const toplamCiro = tamamlanan.reduce((t, s) => t + (s.toplam || 0), 0);
+            const reddedilen = tumSiparisler.filter(s => s.durum === 'reddedildi').length;
+            const ortSure = '-'; // İleride hesaplanabilir
+
+            document.getElementById('raporStats').innerHTML = `
+                <div class="stat-kart"><div class="deger" style="color:#22c55e">${tamamlanan.length}</div><div class="etiket">Tamamlanan</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#f97316">${toplamCiro} ₺</div><div class="etiket">Toplam Ciro</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#ef4444">${reddedilen}</div><div class="etiket">Reddedilen</div></div>
+                <div class="stat-kart"><div class="deger" style="color:#3b82f6">${tamamlanan.length > 0 ? Math.round(toplamCiro / tamamlanan.length) : 0} ₺</div><div class="etiket">Ort. Sipariş</div></div>
+            `;
+
+            // İşletme bazlı
+            const performans = {};
+            tamamlanan.forEach(s => {
+                if (!performans[s.isletmeId]) performans[s.isletmeId] = { siparis: 0, ciro: 0 };
+                performans[s.isletmeId].siparis++;
+                performans[s.isletmeId].ciro += (s.toplam || 0);
+            });
+
+            const satirlar = Object.entries(performans).map(([id, p]) => {
+                const isletme = tumIsletmeler.find(i => i.id === id);
+                const avm = isletme ? tumAvmler.find(a => a.id === isletme.avmId) : null;
+                return { ad: isletme ? isletme.ad : id, avm: avm ? avm.ad : '-', ...p };
+            }).sort((a, b) => b.ciro - a.ciro);
+
+            document.querySelector('#raporTablosu tbody').innerHTML = satirlar.map(s => `
+                <tr>
+                    <td style="font-weight:700">${s.ad}</td>
+                    <td style="color:#64748b">${s.avm}</td>
+                    <td>${s.siparis}</td>
+                    <td style="font-weight:700;color:#22c55e">${s.ciro} ₺</td>
+                    <td>${s.siparis > 0 ? Math.round(s.ciro / s.siparis) : 0} ₺</td>
+                </tr>
+            `).join('');
+        }
+
+        // ========== FİLTRELER ==========
+        function filtreleriGuncelle() {
+            // AVM filtreleri
+            const avmOptions = '<option value="hepsi">Tüm AVM\'ler</option>' +
+                tumAvmler.map(a => `<option value="${a.id}">${a.ad}</option>`).join('');
+            document.getElementById('isletmeFiltre').innerHTML = avmOptions;
+
+            // İşletme filtresi (siparişler)
+            const isletmeOptions = '<option value="hepsi">Tüm İşletmeler</option>' +
+                tumIsletmeler.map(i => `<option value="${i.id}">${i.ad}</option>`).join('');
+            document.getElementById('siparisAvmFiltre').innerHTML = isletmeOptions;
+        }
+
+        // ========== AYARLAR ==========
+        async function adminSifreDegistir() {
+            const yeni = document.getElementById('yeniAdminSifre').value.trim();
+            if (!yeni || yeni.length < 4) return alert('Şifre en az 4 karakter olmalı');
+            await db.collection('sistem').doc('admin').update({ sifre: yeni });
+            document.getElementById('yeniAdminSifre').value = '';
+            alert('Admin şifresi değiştirildi');
+        }
+
+        async function oturumTemizle() {
+            const ikiSaatOnce = new Date(Date.now() - 2 * 60 * 60 * 1000);
+            const snap = await db.collection('oturumlar')
+                .where('aktif', '==', true)
+                .where('olusturma', '<', ikiSaatOnce)
+                .get();
+
+            let sayac = 0;
+            const batch = db.batch();
+            snap.forEach(doc => {
+                batch.update(doc.ref, { aktif: false });
+                sayac++;
+            });
+            await batch.commit();
+            document.getElementById('temizleSonuc').textContent = sayac + ' oturum kapatıldı';
+            setTimeout(() => document.getElementById('temizleSonuc').textContent = '', 3000);
+        }
+    </script>
+</body>
+</html>
