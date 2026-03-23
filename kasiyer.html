@@ -577,6 +577,7 @@
     <div class="topbar">
         <span class="brand">PRATİGO</span>
         <span class="isletme" id="topIsletmeAdi"></span>
+        <button onclick="cikisYap()" style="background:#334155;border:none;color:#94a3b8;padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer">Çıkış</button>
     </div>
 
     <!-- SEKMELER -->
@@ -745,7 +746,16 @@
 
         // ========== GİRİŞ / KAYIT ==========
         if (isletmeId) {
-            girisBasarili(isletmeId);
+            // Kayıtlı ID hâlâ Firestore'da var mı kontrol et
+            db.collection('isletmeler').doc(isletmeId).get().then(doc => {
+                if (doc.exists && doc.data().durum !== 'askida') {
+                    girisBasarili(isletmeId);
+                } else {
+                    // Silinmiş, askıda veya geçersiz — temizle, giriş ekranı göster
+                    localStorage.removeItem('pratigo_isletme_id');
+                    isletmeId = null;
+                }
+            });
         }
 
         async function girisYap() {
@@ -761,6 +771,8 @@
             if (snap.empty) return hataGoster('İşletme adı veya şifre hatalı');
 
             const doc = snap.docs[0];
+            if (doc.data().durum === 'askida') return hataGoster('Bu işletme askıya alınmış. Yönetici ile iletişime geçin.');
+
             localStorage.setItem('pratigo_isletme_id', doc.id);
             girisBasarili(doc.id);
         }
@@ -770,6 +782,11 @@
             el.textContent = msg;
             el.style.display = 'block';
             setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        function cikisYap() {
+            localStorage.removeItem('pratigo_isletme_id');
+            window.location.reload();
         }
 
         function girisBasarili(id) {
