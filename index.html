@@ -3,183 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PRATİGO</title>
+    <title>PRATİGO — Sıra Beklemeden Sipariş Ver</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon-192.png">
     <meta name="theme-color" content="#f97316">
     <link rel="apple-touch-icon" href="/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="PRATİGO ile AVM food court ve restoranlarda sıra beklemeden sipariş ver. QR oku, menüden seç, sıran gelince al.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { background: #060a12; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f172a;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #f8fafc;
-            max-width: 1100px;
-            margin: 0 auto;
-            box-shadow: 0 0 60px rgba(0,0,0,0.5);
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        html{background:#060a12}
+        body{font-family:'DM Sans',sans-serif;background:#0b1120;color:#e2e8f0;min-height:100vh;max-width:900px;margin:0 auto;box-shadow:0 0 80px rgba(0,0,0,.6);position:relative;overflow-x:hidden}
 
-        /* LANDING (QR'sız giriş) */
-        .landing {
-            text-align: center;
-            padding: 2rem;
-            max-width: 400px;
-            width: 100%;
-            display: none;
-        }
-        .landing .logo {
-            font-size: 3.5rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #f97316, #fb923c);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 6px;
-            margin-bottom: 40px;
-        }
-        .landing .alt-logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            margin: 0 auto 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            font-weight: 900;
-            color: #fff;
-            box-shadow: 0 8px 32px rgba(249, 115, 22, 0.3);
-        }
-        .btn-isletme {
-            display: block;
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            color: #fff;
-            border: none;
-            border-radius: 14px;
-            font-size: 1.05rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
-        }
-        .btn-kayit-link {
-            display: block;
-            width: 100%;
-            padding: 16px;
-            background: transparent;
-            color: #94a3b8;
-            border: 2px solid #334155;
-            border-radius: 14px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .copyright {
-            margin-top: 48px;
-            color: #334155;
-            font-size: 0.75rem;
-        }
+        /* === HEADER === */
+        .header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:rgba(11,17,32,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(249,115,22,.08)}
+        .header-logo{display:flex;align-items:center;gap:10px}
+        .logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#fff;box-shadow:0 4px 16px rgba(249,115,22,.25)}
+        .logo-text{font-size:1.2rem;font-weight:900;color:#f97316;letter-spacing:3px}
+        .header-link{color:#64748b;font-size:.8rem;font-weight:600;text-decoration:none;padding:8px 14px;border:1px solid #1e293b;border-radius:8px;transition:all .15s}
+        .header-link:active{border-color:#f97316;color:#f97316}
 
-        /* YÜKLEME (QR ile giriş) */
-        .yukleme {
-            text-align: center;
-            padding: 2rem;
-            display: none;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #1e293b;
-            border-top-color: #f97316;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            margin: 0 auto 16px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .yukleme-text {
-            color: #64748b;
-            font-size: 0.95rem;
-        }
+        /* === HERO === */
+        .hero{padding:40px 20px 32px;text-align:center;position:relative}
+        .hero::before{content:'';position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(249,115,22,.06) 0%,transparent 70%);pointer-events:none}
+        .hero h1{font-size:1.7rem;font-weight:900;color:#f8fafc;line-height:1.25;margin-bottom:10px;position:relative}
+        .hero h1 span{color:#f97316}
+        .hero p{color:#64748b;font-size:.92rem;line-height:1.5;max-width:340px;margin:0 auto}
+
+        /* === NASIL ÇALIŞIR === */
+        .nasil{display:flex;gap:6px;padding:0 20px 28px;justify-content:center;flex-wrap:wrap}
+        .nasil-adim{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:12px 14px;text-align:center;flex:1;min-width:90px;max-width:140px}
+        .nasil-adim .numara{width:24px;height:24px;border-radius:50%;background:#f97316;color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
+        .nasil-adim .baslik{font-size:.72rem;font-weight:700;color:#cbd5e1;line-height:1.3}
+
+        /* === ARAMA === */
+        .arama-alan{padding:0 20px 12px}
+        .arama-kutu{display:flex;align-items:center;gap:10px;background:#111827;border:1px solid #1e293b;border-radius:12px;padding:0 14px;transition:border-color .2s}
+        .arama-kutu:focus-within{border-color:#f97316}
+        .arama-ikon{color:#475569;font-size:1.1rem;flex-shrink:0}
+        .arama-input{flex:1;background:none;border:none;color:#f8fafc;font-size:.9rem;padding:12px 0;outline:none;font-family:inherit}
+        .arama-input::placeholder{color:#334155}
+        .arama-temizle{background:none;border:none;color:#475569;font-size:1rem;cursor:pointer;padding:4px;display:none}
+        .arama-temizle.goster{display:block}
+
+        /* === ŞEHİR FİLTRE === */
+        .sehir-filtre{display:flex;gap:6px;padding:8px 20px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+        .sehir-filtre::-webkit-scrollbar{display:none}
+        .sehir-chip{padding:7px 16px;border-radius:20px;font-size:.78rem;font-weight:600;white-space:nowrap;border:1.5px solid #1e293b;color:#64748b;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .15s;flex-shrink:0}
+        .sehir-chip.aktif{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.08)}
+
+        /* === SON ZİYARETLER === */
+        .son-ziyaret{padding:0 20px 20px;display:none}
+        .son-ziyaret.goster{display:block}
+        .bolum-baslik{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+        .bolum-baslik h2{font-size:.82rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1.5px}
+        .bolum-baslik .temizle-btn{background:none;border:none;color:#334155;font-size:.75rem;cursor:pointer;text-decoration:underline}
+        .son-ziyaret-scroll{display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+        .son-ziyaret-scroll::-webkit-scrollbar{display:none}
+        .son-kart{flex-shrink:0;width:130px;background:#111827;border:1px solid #1e293b;border-radius:12px;padding:14px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+        .son-kart:active{border-color:#f97316;transform:scale(.97)}
+        .son-kart .harf{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;color:#fff;margin:0 auto 8px}
+        .son-kart .ad{font-size:.78rem;font-weight:700;color:#cbd5e1;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+        /* === AVM BÖLÜMÜ === */
+        .bolum{padding:0 20px 24px}
+        .avm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        @media(min-width:600px){.avm-grid{grid-template-columns:1fr 1fr 1fr}}
+        .avm-kart{background:#111827;border:1px solid #1e293b;border-radius:14px;padding:20px 16px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden}
+        .avm-kart::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle at top right,rgba(249,115,22,.06),transparent 70%);pointer-events:none}
+        .avm-kart:active{border-color:#f97316;transform:scale(.98)}
+        .avm-kart .ust{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+        .avm-kart .ikon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1e293b,#334155);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+        .avm-kart .ad{font-size:.92rem;font-weight:800;color:#f8fafc;line-height:1.2}
+        .avm-kart .sehir{font-size:.72rem;color:#475569;margin-top:2px}
+        .avm-kart .alt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .avm-kart .isletme-sayisi{font-size:.72rem;color:#94a3b8;background:#1e293b;padding:3px 10px;border-radius:12px}
+        .avm-kart .acik-durum{font-size:.68rem;padding:2px 8px;border-radius:10px}
+        .avm-kart .acik-durum.var{background:#14532d;color:#22c55e}
+        .avm-kart .acik-durum.yok{background:#1e293b;color:#475569}
+
+        /* === MEKAN BÖLÜMÜ === */
+        .mekan-grid{display:grid;grid-template-columns:1fr;gap:8px}
+        .mekan-kart{background:#111827;border:1px solid #1e293b;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+        .mekan-kart:active{border-color:#f97316;transform:scale(.99)}
+        .mekan-kart .harf{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#fff;flex-shrink:0}
+        .mekan-kart .bilgi{flex:1;min-width:0}
+        .mekan-kart .bilgi .ad{font-weight:700;font-size:.9rem;color:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .mekan-kart .bilgi .detay{font-size:.75rem;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+        .mekan-kart .sag{text-align:right;flex-shrink:0}
+        .mekan-kart .sag .durum{font-size:.7rem;padding:3px 10px;border-radius:10px;font-weight:600}
+        .mekan-kart .sag .durum.acik{background:#14532d;color:#22c55e}
+        .mekan-kart .sag .durum.kapali{background:#450a0a;color:#ef4444}
+        .mekan-kart .sag .sure{font-size:.7rem;color:#94a3b8;margin-top:4px}
+
+        /* === CTA === */
+        .cta-alan{margin:8px 20px 20px;background:linear-gradient(135deg,#1a1206,#1c1306);border:1px solid rgba(249,115,22,.15);border-radius:14px;padding:24px 20px;text-align:center}
+        .cta-alan h3{font-size:1rem;font-weight:800;color:#f8fafc;margin-bottom:6px}
+        .cta-alan p{color:#64748b;font-size:.82rem;margin-bottom:16px;line-height:1.4}
+        .btn-cta{display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 4px 20px rgba(249,115,22,.2)}
+        .btn-cta:active{transform:scale(.97)}
+
+        /* === FOOTER === */
+        .footer{text-align:center;padding:20px;color:#1e293b;font-size:.7rem}
+
+        /* === BOŞ === */
+        .bos-mesaj{text-align:center;padding:30px 20px;color:#334155;font-size:.85rem}
+        .bos-mesaj .ikon{font-size:2rem;margin-bottom:8px}
+
+        /* === YÜKLEME (QR ile giriş) === */
+        .yukleme-overlay{position:fixed;inset:0;z-index:1000;background:#0b1120;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+        .yukleme-overlay.goster{display:flex}
+        .spinner{width:48px;height:48px;border:3px solid #1e293b;border-top-color:#f97316;border-radius:50%;animation:spin .7s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .yukleme-text{color:#64748b;font-size:.9rem}
+
+        /* === ANİMASYONLAR === */
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        .fade-up{animation:fadeUp .4s ease both}
+        .fade-d1{animation-delay:.05s}.fade-d2{animation-delay:.1s}.fade-d3{animation-delay:.15s}.fade-d4{animation-delay:.2s}
+
+        /* Skeleton */
+        .skeleton{background:linear-gradient(90deg,#111827 25%,#1a2332 50%,#111827 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:10px;min-height:80px}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     </style>
 </head>
 <body>
 
-    <!-- QR'SIZ GİRİŞ: LANDING -->
-    <div class="landing" id="landing">
-        <div class="alt-logo">P</div>
-        <div class="logo">PRATİGO</div>
-        <a class="btn-isletme" href="/kasiyer">İşletme Girişi</a>
-        <a class="btn-kayit-link" href="/kayit">Yeni İşletme Kaydı</a>
-        <p class="copyright">© 2026 PRATİGO</p>
+    <!-- YÜKLEME (QR ile giriş) -->
+    <div class="yukleme-overlay" id="yuklemeOverlay">
+        <div class="spinner"></div>
+        <p class="yukleme-text" id="yuklemeText">Yükleniyor...</p>
     </div>
 
-    <!-- QR İLE GİRİŞ: YÜKLEME -->
-    <div class="yukleme" id="yukleme">
-        <div class="spinner"></div>
-        <p class="yukleme-text">Yükleniyor...</p>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-logo">
+            <div class="logo-mark">P</div>
+            <span class="logo-text">PRATİGO</span>
+        </div>
+        <a class="header-link" href="/kasiyer">İşletme Girişi</a>
+    </div>
+
+    <!-- ANA İÇERİK -->
+    <div id="anaSayfa">
+
+        <!-- HERO -->
+        <div class="hero fade-up">
+            <h1>Sıra Beklemeden<br><span>Sipariş Ver</span></h1>
+            <p>AVM food court ve restoranlarda QR ile sipariş ver, sıran gelince al.</p>
+        </div>
+
+        <!-- NASIL ÇALIŞIR -->
+        <div class="nasil fade-up fade-d1">
+            <div class="nasil-adim"><div class="numara">1</div><div class="baslik">QR Oku veya Mekan Seç</div></div>
+            <div class="nasil-adim"><div class="numara">2</div><div class="baslik">Menüden Siparişini Ver</div></div>
+            <div class="nasil-adim"><div class="numara">3</div><div class="baslik">Kasada Öde</div></div>
+            <div class="nasil-adim"><div class="numara">4</div><div class="baslik">Hazır Olunca Al</div></div>
+        </div>
+
+        <!-- ARAMA -->
+        <div class="arama-alan fade-up fade-d2">
+            <div class="arama-kutu">
+                <span class="arama-ikon">🔍</span>
+                <input class="arama-input" type="text" id="aramaInput" placeholder="AVM veya mekan ara..." oninput="aramaFiltrele()">
+                <button class="arama-temizle" id="aramaTemizle" onclick="aramaTemizle()">✕</button>
+            </div>
+        </div>
+
+        <!-- ŞEHİR FİLTRE -->
+        <div class="sehir-filtre fade-up fade-d2" id="sehirFiltre"></div>
+
+        <!-- SON ZİYARETLER -->
+        <div class="son-ziyaret" id="sonZiyaret">
+            <div class="bolum-baslik">
+                <h2>Son Ziyaretleriniz</h2>
+                <button class="temizle-btn" onclick="sonZiyaretTemizle()">Temizle</button>
+            </div>
+            <div class="son-ziyaret-scroll" id="sonZiyaretListe"></div>
+        </div>
+
+        <!-- AVM'LER -->
+        <div class="bolum fade-up fade-d3" id="avmBolum">
+            <div class="bolum-baslik"><h2>AVM Food Court</h2></div>
+            <div class="avm-grid" id="avmGrid">
+                <div class="skeleton"></div><div class="skeleton"></div>
+            </div>
+        </div>
+
+        <!-- BAĞIMSIZ MEKANLAR -->
+        <div class="bolum fade-up fade-d4" id="mekanBolum">
+            <div class="bolum-baslik"><h2>Restoranlar & Kafeler</h2></div>
+            <div class="mekan-grid" id="mekanGrid">
+                <div class="skeleton"></div><div class="skeleton"></div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-alan fade-up">
+            <h3>İşletmeniz PRATİGO'da Yer Alsın</h3>
+            <p>Müşterilerinize modern sipariş deneyimi sunun. Hemen ücretsiz kaydolun.</p>
+            <a class="btn-cta" href="/kayit">Ücretsiz Kayıt Ol →</a>
+        </div>
+
+        <div class="footer">© 2026 PRATİGO — Sıra beklemeden sipariş ver</div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
+    <script src="/guvenlik.js"></script>
+
     <script>
-        (async function() {
-            const params = new URLSearchParams(window.location.search);
-            const isletmeId = params.get('isletme');
-            const avmId = params.get('avm');
+    (async function(){
+        const params = new URLSearchParams(window.location.search);
+        const isletmeId = params.get('isletme');
+        const avmId = params.get('avm');
 
-            // AVM QR'ı ile gelen → AVM sayfasına yönlendir
-            if (avmId) {
-                window.location.href = '/avm?id=' + avmId;
-                return;
+        // ===== QR YÖNLENDİRME (mevcut mantık aynen) =====
+        if(avmId){window.location.href='/avm?id='+avmId;return}
+
+        if(isletmeId){
+            document.getElementById('yuklemeOverlay').classList.add('goster');
+            document.getElementById('anaSayfa').style.display='none';
+            try{
+                const isletmeDoc=await db.collection('isletmeler').doc(isletmeId).get();
+                if(!isletmeDoc.exists){document.getElementById('yuklemeOverlay').classList.remove('goster');document.getElementById('anaSayfa').style.display='';return}
+                document.getElementById('yuklemeText').textContent=isletmeDoc.data().ad||'Yükleniyor...';
+                const oturumRef=await db.collection('oturumlar').add({isletmeId,isletmeAdi:isletmeDoc.data().ad||'',aktif:true,kod:null,sepet:[],olusturma:firebase.firestore.FieldValue.serverTimestamp()});
+                sonZiyaretKaydet(isletmeId,isletmeDoc.data().ad||'','isletme');
+                window.location.href='/musteri?oturum='+oturumRef.id+'&isletme='+isletmeId;
+            }catch(e){
+                console.error('PRATİGO hata:',e);
+                document.getElementById('yuklemeText').textContent='Bağlantı hatası. Tekrar deneyin.';
+                document.querySelector('.spinner').style.borderTopColor='#ef4444';
             }
+            return;
+        }
 
-            // QR parametresi yoksa → landing göster
-            if (!isletmeId) {
-                document.getElementById('landing').style.display = 'block';
-                return;
-            }
+        // ===== ANA SAYFA =====
+        let tumAvmler=[];
+        let tumMekanlar=[];
+        let aktifSehir='';
+        let aramaText='';
 
-            // QR ile gelen → yükleme göster, oturum oluştur
-            document.getElementById('yukleme').style.display = 'block';
+        // Son ziyaretleri göster
+        sonZiyaretCiz();
 
-            try {
-                const isletmeDoc = await db.collection('isletmeler').doc(isletmeId).get();
-                if (!isletmeDoc.exists) {
-                    document.getElementById('yukleme').style.display = 'none';
-                    document.getElementById('landing').style.display = 'block';
-                    return;
-                }
+        // AVM'leri çek
+        db.collection('avmler').get().then(snap=>{
+            tumAvmler=[];
+            snap.forEach(doc=>tumAvmler.push({id:doc.id,...doc.data()}));
+            // Her AVM için işletme sayısını çek
+            const avmPromises=tumAvmler.map(avm=>
+                db.collection('isletmeler').where('avmId','==',avm.id).get().then(iSnap=>{
+                    let acik=0,toplam=0;
+                    iSnap.forEach(d=>{if(d.data().durum!=='askida'){toplam++;if(isletmeAcikMi(d.data()))acik++}});
+                    avm._toplam=toplam;avm._acik=acik;
+                })
+            );
+            Promise.all(avmPromises).then(()=>{sehirFiltreCiz();avmCiz()});
+        });
 
-                document.querySelector('.yukleme-text').textContent = isletmeDoc.data().ad || 'Yükleniyor...';
+        // Bağımsız mekanları çek (avmId olmayan)
+        db.collection('isletmeler').get().then(snap=>{
+            tumMekanlar=[];
+            snap.forEach(doc=>{
+                const d={id:doc.id,...doc.data()};
+                if(!d.avmId&&d.durum!=='askida')tumMekanlar.push(d);
+            });
+            mekanCiz();
+        });
 
-                const oturumRef = await db.collection('oturumlar').add({
-                    isletmeId: isletmeId,
-                    isletmeAdi: isletmeDoc.data().ad || '',
-                    aktif: true,
-                    kod: null,
-                    sepet: [],
-                    olusturma: firebase.firestore.FieldValue.serverTimestamp()
+        // ===== ŞEHİR FİLTRE =====
+        function sehirFiltreCiz(){
+            const sehirler=new Set();
+            tumAvmler.forEach(a=>{if(a.sehir)sehirler.add(a.sehir)});
+            tumMekanlar.forEach(m=>{if(m.sehir)sehirler.add(m.sehir)});
+            const arr=Array.from(sehirler).sort();
+            if(arr.length===0){document.getElementById('sehirFiltre').style.display='none';return}
+            document.getElementById('sehirFiltre').innerHTML=
+                '<button class="sehir-chip aktif" onclick="sehirSec(\'\')">Tümü</button>'+
+                arr.map(s=>'<button class="sehir-chip" onclick="sehirSec(\''+GH(s)+'\')">'+GH(s)+'</button>').join('');
+        }
+
+        window.sehirSec=function(s){
+            aktifSehir=s;
+            document.querySelectorAll('.sehir-chip').forEach(c=>{
+                c.classList.toggle('aktif',c.textContent.trim()===(s||'Tümü'));
+            });
+            avmCiz();mekanCiz();
+        };
+
+        // ===== ARAMA =====
+        window.aramaFiltrele=function(){
+            aramaText=document.getElementById('aramaInput').value.trim().toLowerCase();
+            document.getElementById('aramaTemizle').classList.toggle('goster',aramaText.length>0);
+            avmCiz();mekanCiz();
+        };
+        window.aramaTemizle=function(){
+            document.getElementById('aramaInput').value='';aramaText='';
+            document.getElementById('aramaTemizle').classList.remove('goster');
+            avmCiz();mekanCiz();
+        };
+
+        // ===== AVM ÇİZ =====
+        function avmCiz(){
+            let liste=tumAvmler;
+            if(aktifSehir)liste=liste.filter(a=>(a.sehir||'')===aktifSehir);
+            if(aramaText)liste=liste.filter(a=>(a.ad||'').toLowerCase().includes(aramaText)||(a.sehir||'').toLowerCase().includes(aramaText));
+
+            const grid=document.getElementById('avmGrid');
+            const bolum=document.getElementById('avmBolum');
+            if(liste.length===0){bolum.style.display=aramaText||aktifSehir?'none':'block';grid.innerHTML='<div class="bos-mesaj"><div class="ikon">🏬</div><p>Kayıtlı AVM bulunmuyor</p></div>';return}
+            bolum.style.display='block';
+            grid.innerHTML=liste.map(a=>{
+                const harf=GH((a.ad||'?').charAt(0).toUpperCase());
+                const acikVar=a._acik>0;
+                return `<div class="avm-kart" onclick="avmGit('${a.id}','${GH(a.ad||'')}')">
+                    <div class="ust"><div class="ikon">🏬</div><div><div class="ad">${GH(a.ad)}</div>${a.sehir?'<div class="sehir">'+GH(a.sehir)+'</div>':''}</div></div>
+                    <div class="alt">
+                        <span class="isletme-sayisi">${a._toplam||0} restoran</span>
+                        <span class="acik-durum ${acikVar?'var':'yok'}">${acikVar?a._acik+' açık':'Kapalı'}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ===== MEKAN ÇİZ =====
+        function mekanCiz(){
+            let liste=tumMekanlar;
+            if(aktifSehir)liste=liste.filter(m=>(m.sehir||'')===aktifSehir);
+            if(aramaText)liste=liste.filter(m=>(m.ad||'').toLowerCase().includes(aramaText)||(m.sehir||'').toLowerCase().includes(aramaText)||(m.tur||'').toLowerCase().includes(aramaText));
+
+            const grid=document.getElementById('mekanGrid');
+            const bolum=document.getElementById('mekanBolum');
+            if(liste.length===0){bolum.style.display=aramaText||aktifSehir?'none':'block';grid.innerHTML='<div class="bos-mesaj"><div class="ikon">🍽️</div><p>Bağımsız mekan bulunmuyor</p></div>';return}
+            bolum.style.display='block';
+            grid.innerHTML=liste.map(m=>{
+                const harf=GH((m.ad||'?').charAt(0).toUpperCase());
+                const acik=isletmeAcikMi(m);
+                let sureHTML='';
+                if(m.tapiSure&&m.tapiVeriSayisi>=3)sureHTML='<div class="sure">⏱ ~'+m.tapiSure+' dk</div>';
+                const turText=m.tur?GH(m.tur):'Restoran';
+                return `<div class="mekan-kart" onclick="mekanGit('${m.id}','${GH(m.ad||'')}')">
+                    <div class="harf">${harf}</div>
+                    <div class="bilgi"><div class="ad">${GH(m.ad)}</div><div class="detay"><span>${turText}</span>${m.sehir?'<span>· '+GH(m.sehir)+'</span>':''}</div></div>
+                    <div class="sag"><div class="durum ${acik?'acik':'kapali'}">${acik?'Açık':'Kapalı'}</div>${sureHTML}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // ===== NAVIGASYON =====
+        window.avmGit=function(id,ad){
+            sonZiyaretKaydet(id,ad,'avm');
+            window.location.href='/avm?id='+id;
+        };
+
+        window.mekanGit=async function(id,ad){
+            document.getElementById('yuklemeOverlay').classList.add('goster');
+            document.getElementById('yuklemeText').textContent=ad||'Yükleniyor...';
+            try{
+                const oturumRef=await db.collection('oturumlar').add({
+                    isletmeId:id,isletmeAdi:ad,aktif:true,kod:null,sepet:[],
+                    olusturma:firebase.firestore.FieldValue.serverTimestamp()
                 });
-
-                window.location.href = '/musteri?oturum=' + oturumRef.id + '&isletme=' + isletmeId;
-            } catch(e) {
-                console.error('PRATİGO hata:', e);
-                document.querySelector('.yukleme-text').textContent = 'Bağlantı hatası. Tekrar deneyin.';
-                document.querySelector('.spinner').style.borderTopColor = '#ef4444';
+                sonZiyaretKaydet(id,ad,'isletme');
+                window.location.href='/musteri?oturum='+oturumRef.id+'&isletme='+id;
+            }catch(e){
+                console.error(e);
+                document.getElementById('yuklemeOverlay').classList.remove('goster');
             }
-        })();
+        };
+
+        // ===== ÇALIŞMA SAATİ KONTROLÜ =====
+        function isletmeAcikMi(i){
+            const cs=i.calismaSaatleri;if(!cs)return true;
+            const s=new Date(),g=['pazar','pazartesi','sali','carsamba','persembe','cuma','cumartesi'],bg=g[s.getDay()],t=s.toISOString().split('T')[0];
+            let gv=null;if(i.gunOzel&&i.gunOzel[t])gv=i.gunOzel[t];else gv=cs[bg];
+            if(!gv||gv.kapali)return false;
+            const sa=String(s.getHours()).padStart(2,'0')+':'+String(s.getMinutes()).padStart(2,'0');
+            return sa>=gv.acilis&&sa<gv.kapanis;
+        }
+
+        // ===== SON ZİYARETLER (localStorage) =====
+        function sonZiyaretKaydet(id,ad,tip){
+            try{
+                let liste=JSON.parse(localStorage.getItem('pratigo_son_ziyaret')||'[]');
+                liste=liste.filter(x=>x.id!==id);
+                liste.unshift({id,ad,tip,zaman:Date.now()});
+                liste=liste.slice(0,8);
+                localStorage.setItem('pratigo_son_ziyaret',JSON.stringify(liste));
+            }catch(e){}
+        }
+
+        function sonZiyaretCiz(){
+            try{
+                const liste=JSON.parse(localStorage.getItem('pratigo_son_ziyaret')||'[]');
+                const alan=document.getElementById('sonZiyaret');
+                if(liste.length===0){alan.classList.remove('goster');return}
+                alan.classList.add('goster');
+                document.getElementById('sonZiyaretListe').innerHTML=liste.map(x=>{
+                    const harf=GH((x.ad||'?').charAt(0).toUpperCase());
+                    const tiklama=x.tip==='avm'?"avmGit('"+x.id+"','"+GH(x.ad)+"')":"mekanGit('"+x.id+"','"+GH(x.ad)+"')";
+                    return `<div class="son-kart" onclick="${tiklama}"><div class="harf">${harf}</div><div class="ad">${GH(x.ad)}</div></div>`;
+                }).join('');
+            }catch(e){}
+        }
+
+        window.sonZiyaretTemizle=function(){
+            localStorage.removeItem('pratigo_son_ziyaret');
+            document.getElementById('sonZiyaret').classList.remove('goster');
+        };
+
+    })();
     </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
 </body>
