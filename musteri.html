@@ -793,6 +793,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
+    <script src="/guvenlik.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
         const oturumId = params.get('oturum');
@@ -884,7 +885,7 @@
             document.getElementById('bilgiAd').textContent = isletmeVerisi.ad || '';
             let html = '';
             if (isletmeVerisi.tanitim) {
-                html += '<div class="bilgi-satir">' + isletmeVerisi.tanitim + '</div>';
+                html += '<div class="bilgi-satir">' + GH(isletmeVerisi.tanitim) + '</div>';
             }
             if (isletmeVerisi.calismaSaatleri) {
                 const gunAdlari = { pazartesi:'Pazartesi', sali:'Salı', carsamba:'Çarşamba', persembe:'Perşembe', cuma:'Cuma', cumartesi:'Cumartesi', pazar:'Pazar' };
@@ -903,7 +904,7 @@
         }
 
         function bilgiKapat(e) {
-            if (e && e.target !== document.getElementById('bilgiOverlay')) return;
+            if (e && e.target && e.target !== document.getElementById('bilgiOverlay') && !e.target.classList.contains('bilgi-kapat')) return;
             document.getElementById('bilgiOverlay').style.display = 'none';
         }
 
@@ -944,7 +945,7 @@
             // Kategorili ürünler
             kategoriler.forEach(kat => {
                 if (!gruplar[kat] || gruplar[kat].length === 0) return;
-                html += '<div style="color:#f97316;font-weight:700;font-size:0.9rem;padding:16px 0 8px;text-transform:uppercase;letter-spacing:1px">' + kat + '</div>';
+                html += '<div style="color:#f97316;font-weight:700;font-size:0.9rem;padding:16px 0 8px;text-transform:uppercase;letter-spacing:1px">' + GH(kat) + '</div>';
                 html += gruplar[kat].map(u => menuSatirHTML(u)).join('');
             });
 
@@ -966,16 +967,16 @@
                 <div class="menu-satir-ust">
                     <div class="menu-satir-sol" onclick="menuAciklamaToggle('${u.id}')">
                         <div class="urun-ad">
-                            ${u.ad}
+                            ${GH(u.ad)}
                             ${aciklamaVar ? '<span class="aciklama-ikon">▼</span>' : ''}
                         </div>
                         <div class="urun-fiyat">${u.fiyat} ₺</div>
                     </div>
-                    <button class="btn-ekle" onclick="sepeteEkleTikla(event, '${u.id}', '${u.ad}', ${u.fiyat})">+</button>
+                    <button class="btn-ekle" onclick="sepeteEkleTikla(event, '${u.id}', '${GH(u.ad)}', ${u.fiyat})">+</button>
                 </div>
                 ${aciklamaVar ? `
                 <div class="menu-aciklama" id="maciklama_${u.id}">
-                    <div class="menu-aciklama-icerik">${u.aciklama}</div>
+                    <div class="menu-aciklama-icerik">${GH(u.aciklama)}</div>
                 </div>
                 ` : ''}
             </div>
@@ -1027,7 +1028,7 @@
 
             document.getElementById('sepetDetay').innerHTML = sepet.map((s, i) => `
                 <div class="sepet-urun-satir">
-                    <div class="sepet-urun-ad">${s.ad}</div>
+                    <div class="sepet-urun-ad">${GH(s.ad)}</div>
                     <div class="sepet-urun-adet">
                         <button class="eksi" onclick="adetDegistir(${i}, -1)">−</button>
                         <span>${s.adet}</span>
@@ -1074,7 +1075,10 @@
             if (!kodUretildi) {
                 let kod = '';
                 let benzersiz = false;
-                while (!benzersiz) {
+                let deneme = 0;
+                const maxDeneme = 50;
+                while (!benzersiz && deneme < maxDeneme) {
+                    deneme++;
                     kod = String(Math.floor(Math.random() * 900) + 100);
                     const mevcut = await db.collection('oturumlar')
                         .where('kod', '==', kod)
@@ -1082,6 +1086,11 @@
                         .where('isletmeId', '==', isletmeId)
                         .get();
                     if (mevcut.empty) benzersiz = true;
+                }
+
+                if (!benzersiz) {
+                    hataBildirim('Şu an çok yoğunuz, lütfen birkaç dakika sonra tekrar deneyin.');
+                    return;
                 }
 
                 await db.collection('oturumlar').doc(oturumId).update({
@@ -1279,7 +1288,7 @@
         function onayModalGoster(siparis) {
             document.getElementById('onayUrunler').innerHTML = (siparis.urunler || []).map(u => `
                 <div class="onay-urun-satir">
-                    <span>${u.ad} × ${u.adet}</span>
+                    <span>${GH(u.ad)} × ${u.adet}</span>
                     <span style="color:#f97316;font-weight:700">${u.fiyat * u.adet} ₺</span>
                 </div>
             `).join('');

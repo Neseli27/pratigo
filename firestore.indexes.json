@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "siparisler",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isletmeId", "order": "ASCENDING" },
+        { "fieldPath": "olusturma", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oturumlar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kod", "order": "ASCENDING" },
+        { "fieldPath": "aktif", "order": "ASCENDING" },
+        { "fieldPath": "isletmeId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oturumlar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "aktif", "order": "ASCENDING" },
+        { "fieldPath": "olusturma", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oturumlar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "olusturma", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "isletmeler",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ad", "order": "ASCENDING" },
+        { "fieldPath": "sifreHash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "isletmeler",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ad", "order": "ASCENDING" },
+        { "fieldPath": "avmId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "siparisler",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "oturumId", "order": "ASCENDING" },
+        { "fieldPath": "olusturma", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -633,10 +633,10 @@
 
     <!-- SEKMELER -->
     <div class="tabs">
-        <button class="tab-btn aktif" onclick="sekmeAc('kasa')">🏪 Kasa</button>
-        <button class="tab-btn" onclick="sekmeAc('menu')">📋 Menü</button>
-        <button class="tab-btn" onclick="sekmeAc('gecmis')">📊 Geçmiş</button>
-        <button class="tab-btn" onclick="sekmeAc('ayarlar')">⚙️ Ayarlar</button>
+        <button class="tab-btn aktif" onclick="sekmeAc('kasa', this)">🏪 Kasa</button>
+        <button class="tab-btn" onclick="sekmeAc('menu', this)">📋 Menü</button>
+        <button class="tab-btn" onclick="sekmeAc('gecmis', this)">📊 Geçmiş</button>
+        <button class="tab-btn" onclick="sekmeAc('ayarlar', this)">⚙️ Ayarlar</button>
     </div>
 
     <!-- SEKME 1: KASA & MUTFAK -->
@@ -801,6 +801,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
+    <script src="/guvenlik.js"></script>
     <script>
         let isletmeId = localStorage.getItem('pratigo_isletme_id');
         let isletmeData = {};
@@ -818,6 +819,7 @@
                 } else {
                     // Silinmiş, askıda veya geçersiz — temizle, giriş ekranı göster
                     localStorage.removeItem('pratigo_isletme_id');
+                    localStorage.removeItem('pratigo_sifre_hash');
                     isletmeId = null;
                 }
             });
@@ -828,17 +830,35 @@
             const sifre = document.getElementById('girisSifre').value.trim();
             if (!ad || !sifre) return hataGoster('Tüm alanları doldurun');
 
+            const hash = await sifreHashle(sifre);
+
             const snap = await db.collection('isletmeler')
                 .where('ad', '==', ad)
-                .where('sifre', '==', sifre)
+                .where('sifreHash', '==', hash)
                 .get();
 
-            if (snap.empty) return hataGoster('İşletme adı veya şifre hatalı');
+            // Eski düz metin şifre ile de dene (migration desteği)
+            let doc = null;
+            if (snap.empty) {
+                const eskiSnap = await db.collection('isletmeler')
+                    .where('ad', '==', ad)
+                    .where('sifre', '==', sifre)
+                    .get();
+                if (eskiSnap.empty) return hataGoster('İşletme adı veya şifre hatalı');
+                doc = eskiSnap.docs[0];
+                // Eski şifreyi hash'e migrate et
+                await db.collection('isletmeler').doc(doc.id).update({
+                    sifreHash: hash,
+                    sifre: firebase.firestore.FieldValue.delete()
+                });
+            } else {
+                doc = snap.docs[0];
+            }
 
-            const doc = snap.docs[0];
             if (doc.data().durum === 'askida') return hataGoster('Bu işletme askıya alınmış. Yönetici ile iletişime geçin.');
 
             localStorage.setItem('pratigo_isletme_id', doc.id);
+            localStorage.setItem('pratigo_sifre_hash', hash);
             girisBasarili(doc.id);
         }
 
@@ -851,6 +871,7 @@
 
         function cikisYap() {
             localStorage.removeItem('pratigo_isletme_id');
+            localStorage.removeItem('pratigo_sifre_hash');
             window.location.reload();
         }
 
@@ -893,10 +914,14 @@
                 menuListeCiz();
             });
 
-            // Aktif siparişleri dinle
+            // Aktif siparişleri dinle — sadece bugünküler (performans)
             let ilkYukleme = true;
+            const bugunBaslangic = new Date();
+            bugunBaslangic.setHours(0, 0, 0, 0);
+
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
+                .where('olusturma', '>=', bugunBaslangic)
                 .onSnapshot(snap => {
                     // JS'te durum filtrele
                     const aktifDurumlar = ['onaylandi', 'odeme_bekliyor', 'hazirlaniyor'];
@@ -926,11 +951,11 @@
         }
 
         // ========== SEKME ==========
-        function sekmeAc(isim) {
+        function sekmeAc(isim, btn) {
             document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.remove('aktif'));
             document.querySelectorAll('.tab-icerik').forEach(t => t.classList.remove('aktif'));
             document.getElementById('tab-' + isim).classList.add('aktif');
-            event.target.classList.add('aktif');
+            if (btn) btn.classList.add('aktif');
         }
 
         // ========== KASİYER MENÜ ==========
@@ -938,8 +963,8 @@
             document.getElementById('kasiyerMenuGrid').innerHTML = menuVerisi
                 .filter(u => u.aktif !== false)
                 .map(u => `
-                    <button class="kasiyer-menu-btn" onclick="kasiyerSepeteEkle('${u.id}','${u.ad}',${u.fiyat})">
-                        ${u.ad}
+                    <button class="kasiyer-menu-btn" onclick="kasiyerSepeteEkle('${u.id}','${GH(u.ad)}',${u.fiyat})">
+                        ${GH(u.ad)}
                         <div class="fiyat">${u.fiyat} ₺</div>
                     </button>
                 `).join('');
@@ -964,7 +989,7 @@
 
             el.innerHTML = kasiyerSepet.map((s, i) => `
                 <div class="kasiyer-sepet-satir">
-                    <span>${s.ad} × ${s.adet}</span>
+                    <span>${GH(s.ad)} × ${s.adet}</span>
                     <span style="color:#f97316;font-weight:700">${s.fiyat * s.adet} ₺</span>
                     <button class="kasiyer-sepet-sil" onclick="kasiyerSepetSil(${i})">✕</button>
                 </div>
@@ -1032,14 +1057,15 @@
             const toplam = kasiyerSepet.reduce((t, s) => t + (s.fiyat * s.adet), 0);
             const siparisNotu = oturumData.siparisNotu || '';
 
-            // Sipariş oluştur
+            // Sipariş oluştur — kasiyer oluşturduğu için doğrudan ödeme bekliyor durumuna al
             await db.collection('siparisler').add({
                 isletmeId: isletmeId,
                 oturumId: aktifOturumId,
                 musteriKod: aktifMusteriKod,
                 urunler: kasiyerSepet,
                 toplam: toplam,
-                durum: 'onay_bekliyor',
+                durum: 'odeme_bekliyor',
+                kaynak: 'kasiyer',
                 siraNo: null,
                 not: siparisNotu,
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
@@ -1079,8 +1105,8 @@
                             <span class="kuyruk-kod">${formatKod(s.musteriKod)}</span>
                             <span class="kuyruk-toplam">${s.toplam} ₺</span>
                         </div>
-                        <div class="kuyruk-urunler">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
-                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-bottom:6px;background:#422006;padding:4px 8px;border-radius:6px">📝 ' + s.not + '</div>' : ''}
+                        <div class="kuyruk-urunler">${(s.urunler || []).map(u => GH(u.ad) + '×' + u.adet).join(', ')}</div>
+                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-bottom:6px;background:#422006;padding:4px 8px;border-radius:6px">📝 ' + GH(s.not) + '</div>' : ''}
                         <div class="kuyruk-alt">
                             <input class="sira-no-input" type="text" placeholder="Sıra No" id="sira_${s.id}" inputmode="numeric" maxlength="4">
                             <button class="btn-odendi" onclick="odendiIsaretle('${s.id}')">💳 ÖDENDİ</button>
@@ -1098,11 +1124,11 @@
                 mutfakEl.innerHTML = mutfakList.map(s => `
                     <div class="kuyruk-kart mutfak">
                         <div class="kuyruk-kart-ust">
-                            <span class="mutfak-sira-no">${s.siraNo || '?'}</span>
+                            <span class="mutfak-sira-no">${GH(s.siraNo) || '?'}</span>
                             <span class="kuyruk-toplam">${formatKod(s.musteriKod)}</span>
                         </div>
-                        <div class="kuyruk-urunler">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
-                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-bottom:6px;background:#422006;padding:4px 8px;border-radius:6px">📝 ' + s.not + '</div>' : ''}
+                        <div class="kuyruk-urunler">${(s.urunler || []).map(u => GH(u.ad) + '×' + u.adet).join(', ')}</div>
+                        ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-bottom:6px;background:#422006;padding:4px 8px;border-radius:6px">📝 ' + GH(s.not) + '</div>' : ''}
                         <button class="btn-hazir" onclick="hazirIsaretle('${s.id}')">✅ HAZIR!</button>
                     </div>
                 `).join('');
@@ -1151,9 +1177,14 @@
         // ========== TAHMİNİ BEKLEME SÜRESİ HESAPLAMA ==========
         async function ortalamaGuncelle() {
             try {
-                // Tek where, sıralama JS'te
+                // Son 7 günün siparişlerini çek (tüm koleksiyon yerine)
+                const yediGunOnce = new Date();
+                yediGunOnce.setDate(yediGunOnce.getDate() - 7);
+                yediGunOnce.setHours(0, 0, 0, 0);
+
                 const snap = await db.collection('siparisler')
                     .where('isletmeId', '==', isletmeId)
+                    .where('olusturma', '>=', yediGunOnce)
                     .get();
 
                 const sureler = [];
@@ -1198,19 +1229,24 @@
             const kategori = document.getElementById('yeniUrunKategori').value;
             if (!ad || !fiyat) { hataBildirim('Ürün adı ve fiyat girin'); return; };
 
-            await db.collection('isletmeler').doc(isletmeId).collection('menu').add({
-                ad: ad,
-                fiyat: fiyat,
-                aciklama: aciklama,
-                kategori: kategori,
-                aktif: true,
-                sira: menuVerisi.length,
-                olusturma: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            try {
+                await db.collection('isletmeler').doc(isletmeId).collection('menu').add({
+                    ad: ad,
+                    fiyat: fiyat,
+                    aciklama: aciklama,
+                    kategori: kategori,
+                    aktif: true,
+                    sira: menuVerisi.length,
+                    olusturma: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-            document.getElementById('yeniUrunAd').value = '';
-            document.getElementById('yeniUrunFiyat').value = '';
-            document.getElementById('yeniUrunAciklama').value = '';
+                document.getElementById('yeniUrunAd').value = '';
+                document.getElementById('yeniUrunFiyat').value = '';
+                document.getElementById('yeniUrunAciklama').value = '';
+            } catch(e) {
+                console.error('Ürün ekleme hatası:', e);
+                hataBildirim('Ürün eklenirken hata oluştu');
+            }
         }
 
         function menuListeCiz() {
@@ -1231,7 +1267,7 @@
             // Önce kategorili olanlar
             kategoriler.forEach(kat => {
                 if (!gruplar[kat] || gruplar[kat].length === 0) return;
-                html += '<div style="color:#f97316;font-weight:700;font-size:0.85rem;padding:12px 0 6px;border-bottom:1px solid #334155;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">📂 ' + kat + '</div>';
+                html += '<div style="color:#f97316;font-weight:700;font-size:0.85rem;padding:12px 0 6px;border-bottom:1px solid #334155;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">📂 ' + GH(kat) + '</div>';
                 html += gruplar[kat].map(u => urunSatirHTML(u)).join('');
             });
 
@@ -1253,9 +1289,9 @@
             <div class="menu-liste-item" id="menu_item_${u.id}" style="${u.aktif === false ? 'opacity:0.5' : ''};flex-wrap:wrap">
                 <div id="menu_goster_${u.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center">
                     <div>
-                        <span class="ad">${u.ad}</span>
+                        <span class="ad">${GH(u.ad)}</span>
                         <span class="fiyat" style="margin-left:12px">${u.fiyat} ₺</span>
-                        ${aciklamaVar ? '<div style="color:#64748b;font-size:0.8rem;margin-top:4px">' + u.aciklama + '</div>' : ''}
+                        ${aciklamaVar ? '<div style="color:#64748b;font-size:0.8rem;margin-top:4px">' + GH(u.aciklama) + '</div>' : ''}
                     </div>
                     <div class="islemler" id="menu_btn_${u.id}">
                         <button class="btn-duzenle" onclick="urunDuzenle('${u.id}')">✏️</button>
@@ -1269,12 +1305,12 @@
                     <div class="duzenle-form" style="flex-wrap:wrap">
                         <select class="duzenle-input" id="edit_kat_${u.id}" style="flex:1;min-width:100px">
                             <option value="" ${!katAdi ? 'selected' : ''}>Kategorisiz</option>
-                            ${(isletmeData.kategoriler || []).map(k => '<option value="' + k + '" ' + (k === katAdi ? 'selected' : '') + '>' + k + '</option>').join('')}
+                            ${(isletmeData.kategoriler || []).map(k => '<option value="' + GH(k) + '" ' + (k === katAdi ? 'selected' : '') + '>' + GH(k) + '</option>').join('')}
                         </select>
-                        <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${u.ad}">
+                        <input class="duzenle-input ad-input" id="edit_ad_${u.id}" value="${GH(u.ad)}">
                         <input class="duzenle-input fiyat-input" id="edit_fiyat_${u.id}" type="number" value="${u.fiyat}">
                     </div>
-                    <textarea class="duzenle-input" id="edit_aciklama_${u.id}" placeholder="Açıklama (isteğe bağlı)" style="width:100%;margin-top:8px;min-height:45px;resize:vertical;font-family:inherit">${u.aciklama || ''}</textarea>
+                    <textarea class="duzenle-input" id="edit_aciklama_${u.id}" placeholder="Açıklama (isteğe bağlı)" style="width:100%;margin-top:8px;min-height:45px;resize:vertical;font-family:inherit">${GH(u.aciklama || '')}</textarea>
                     <div style="display:flex;gap:8px;margin-top:8px">
                         <button class="btn-duzenle-kaydet" onclick="urunKaydet('${u.id}')">✓ Kaydet</button>
                         <button class="btn-duzenle-iptal" onclick="urunDuzenleIptal('${u.id}')">✕ İptal</button>
@@ -1331,8 +1367,8 @@
                 ? '<span style="color:#475569;font-size:0.85rem">Henüz kategori eklenmemiş</span>'
                 : kategoriler.map(k => `
                     <span style="display:inline-flex;align-items:center;gap:6px;background:#334155;padding:6px 12px;border-radius:8px;font-size:0.85rem">
-                        ${k}
-                        <button onclick="kategoriSil('${k}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;padding:0">✕</button>
+                        ${GH(k)}
+                        <button onclick="kategoriSil('${GH(k)}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.9rem;padding:0">✕</button>
                     </span>
                 `).join('');
 
@@ -1348,17 +1384,27 @@
             const mevcut = isletmeData.kategoriler || [];
             if (mevcut.includes(ad)) { hataBildirim('Bu kategori zaten var'); return; };
 
-            await db.collection('isletmeler').doc(isletmeId).update({
-                kategoriler: firebase.firestore.FieldValue.arrayUnion(ad)
-            });
-            document.getElementById('yeniKategoriAd').value = '';
+            try {
+                await db.collection('isletmeler').doc(isletmeId).update({
+                    kategoriler: firebase.firestore.FieldValue.arrayUnion(ad)
+                });
+                document.getElementById('yeniKategoriAd').value = '';
+            } catch(e) {
+                console.error('Kategori ekleme hatası:', e);
+                hataBildirim('Kategori eklenirken hata oluştu');
+            }
         }
 
         async function kategoriSil(ad) {
             if (!await onayGoster(ad + ' kategorisi silinsin mi? İçindeki ürünler kategorisiz olacak.', true)) return;
-            await db.collection('isletmeler').doc(isletmeId).update({
-                kategoriler: firebase.firestore.FieldValue.arrayRemove(ad)
-            });
+            try {
+                await db.collection('isletmeler').doc(isletmeId).update({
+                    kategoriler: firebase.firestore.FieldValue.arrayRemove(ad)
+                });
+            } catch(e) {
+                console.error('Kategori silme hatası:', e);
+                hataBildirim('Kategori silinirken hata oluştu');
+            }
         }
 
         // ========== PROFİL ==========
@@ -1370,12 +1416,23 @@
             const telefon = document.getElementById('profilTelefon').value.trim();
             if (!ad) { hataBildirim('İşletme adını girin'); return; };
 
-            const guncelleme = { ad: ad, tanitim: tanitim, yetkili: yetkili, telefon: telefon };
-            if (sifre) guncelleme.sifre = sifre;
+            try {
+                const guncelleme = { ad: ad, tanitim: tanitim, yetkili: yetkili, telefon: telefon };
+                if (sifre) {
+                    if (sifre.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; }
+                    guncelleme.sifreHash = await sifreHashle(sifre);
+                    guncelleme.sifre = firebase.firestore.FieldValue.delete();
+                    // localStorage'daki hash'i de güncelle
+                    localStorage.setItem('pratigo_sifre_hash', guncelleme.sifreHash);
+                }
 
-            await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
-            document.getElementById('profilSifre').value = '';
-            basariBildirim('Bilgiler güncellendi');
+                await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
+                document.getElementById('profilSifre').value = '';
+                basariBildirim('Bilgiler güncellendi');
+            } catch(e) {
+                console.error('Profil kaydetme hatası:', e);
+                hataBildirim('Kaydetme sırasında hata oluştu');
+            }
         }
 
         // ========== QR KOD ==========
@@ -1464,8 +1521,13 @@
                     kapali: document.getElementById('saat_' + g + '_kapali').checked
                 };
             });
-            await db.collection('isletmeler').doc(isletmeId).update({ calismaSaatleri: cs });
-            basariBildirim('Çalışma saatleri kaydedildi');
+            try {
+                await db.collection('isletmeler').doc(isletmeId).update({ calismaSaatleri: cs });
+                basariBildirim('Çalışma saatleri kaydedildi');
+            } catch(e) {
+                console.error('Saat kaydetme hatası:', e);
+                hataBildirim('Saatler kaydedilirken hata oluştu');
+            }
         }
 
         async function ozelGunKaydet() {
@@ -1480,8 +1542,13 @@
                 kapanis: kapanis,
                 kapali: kapali
             };
-            await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
-            basariBildirim(kapali ? 'Bugün kapalı olarak işaretlendi' : 'Bugünün saatleri güncellendi: ' + acilis + ' - ' + kapanis);
+            try {
+                await db.collection('isletmeler').doc(isletmeId).update(guncelleme);
+                basariBildirim(kapali ? 'Bugün kapalı olarak işaretlendi' : 'Bugünün saatleri güncellendi: ' + acilis + ' - ' + kapanis);
+            } catch(e) {
+                console.error('Özel gün kaydetme hatası:', e);
+                hataBildirim('Kaydetme sırasında hata oluştu');
+            }
         }
 
         // ========== GEÇMİŞ ==========
@@ -1489,15 +1556,16 @@
             const bugun = new Date();
             bugun.setHours(0, 0, 0, 0);
 
-            // Tek where, geri kalan JS'te
+            // Bugünden itibaren sorgu — tüm siparişleri çekmek yerine
             db.collection('siparisler')
                 .where('isletmeId', '==', isletmeId)
+                .where('olusturma', '>=', bugun)
                 .onSnapshot(snap => {
                     const siparisler = [];
                     snap.forEach(doc => {
                         const d = { id: doc.id, ...doc.data() };
-                        // Bugünkü + tamamlanmış olanları filtrele
-                        if ((d.durum === 'hazir' || d.durum === 'teslim_edildi') && d.olusturma && d.olusturma.toDate() >= bugun) {
+                        // Tamamlanmış olanları filtrele
+                        if (d.durum === 'hazir' || d.durum === 'teslim_edildi') {
                             siparisler.push(d);
                         }
                     });
@@ -1559,8 +1627,8 @@
                         ${beklemeTxt ? '<span style="color:#3b82f6;font-size:0.75rem">⏱' + beklemeTxt + '</span>' : ''}
                         ${puanHTML}
                     </div>
-                    <div style="color:#94a3b8;font-size:0.85rem">${(s.urunler || []).map(u => u.ad + '×' + u.adet).join(', ')}</div>
-                    ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-top:2px">📝 ' + s.not + '</div>' : ''}
+                    <div style="color:#94a3b8;font-size:0.85rem">${(s.urunler || []).map(u => GH(u.ad) + '×' + u.adet).join(', ')}</div>
+                    ${s.not ? '<div style="color:#fbbf24;font-size:0.8rem;margin-top:2px">📝 ' + GH(s.not) + '</div>' : ''}
                 </div>
                 `;
             }).join('');

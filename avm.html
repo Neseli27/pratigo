@@ -184,6 +184,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
+    <script src="/guvenlik.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
         const avmId = params.get('id') || 'primemall';
@@ -220,7 +221,7 @@
 
                 const grid = document.getElementById('restoranGrid');
                 grid.innerHTML = isletmeler.map(i => {
-                    const harf = (i.ad || '?').charAt(0).toUpperCase();
+                    const harf = GH((i.ad || '?').charAt(0).toUpperCase());
                     const acikMi = isletmeAcikMi(i);
 
                     // Tahmini süre
@@ -230,9 +231,9 @@
                     }
 
                     return `
-                    <div class="restoran-kart" onclick="restoranSec('${i.id}')">
+                    <div class="restoran-kart" onclick="restoranSec('${i.id}', this)">
                         <div class="restoran-ikon">${harf}</div>
-                        <div class="restoran-ad">${i.ad}</div>
+                        <div class="restoran-ad">${GH(i.ad)}</div>
                         <div class="restoran-durum ${acikMi ? 'acik' : 'kapali'}">${acikMi ? '● Açık' : '● Kapalı'}</div>
                         ${sureHTML}
                     </div>
@@ -262,10 +263,12 @@
             return saat >= gunVerisi.acilis && saat < gunVerisi.kapanis;
         }
 
-        async function restoranSec(isletmeId) {
+        async function restoranSec(isletmeId, kartEl) {
             // Tıklanan kartı vurgula
-            event.currentTarget.style.borderColor = '#f97316';
-            event.currentTarget.style.background = '#334155';
+            if (kartEl) {
+                kartEl.style.borderColor = '#f97316';
+                kartEl.style.background = '#334155';
+            }
 
             // Oturum oluştur
             const isletmeDoc = await db.collection('isletmeler').doc(isletmeId).get();

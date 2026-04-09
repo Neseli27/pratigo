@@ -161,10 +161,10 @@
         <!-- SIDEBAR -->
         <div class="sidebar" id="sidebar">
         <div class="logo">PRATİGO <span>Süper Admin</span></div>
-        <button class="nav-btn aktif" onclick="sayfaAc('dashboard')"><span class="ikon">📊</span><span class="nav-text">Dashboard</span></button>
-        <button class="nav-btn" onclick="sayfaAc('avmler')"><span class="ikon">🏬</span><span class="nav-text">AVM'ler</span></button>
-        <button class="nav-btn" onclick="sayfaAc('isletmeler')"><span class="ikon">🍽️</span><span class="nav-text">İşletmeler</span></button>
-        <button class="nav-btn" onclick="sayfaAc('ayarlar')"><span class="ikon">⚙️</span><span class="nav-text">Ayarlar</span></button>
+        <button class="nav-btn aktif" onclick="sayfaAc('dashboard', this)"><span class="ikon">📊</span><span class="nav-text">Dashboard</span></button>
+        <button class="nav-btn" onclick="sayfaAc('avmler', this)"><span class="ikon">🏬</span><span class="nav-text">AVM'ler</span></button>
+        <button class="nav-btn" onclick="sayfaAc('isletmeler', this)"><span class="ikon">🍽️</span><span class="nav-text">İşletmeler</span></button>
+        <button class="nav-btn" onclick="sayfaAc('ayarlar', this)"><span class="ikon">⚙️</span><span class="nav-text">Ayarlar</span></button>
     </div>
 
     <!-- MAIN -->
@@ -342,6 +342,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
+    <script src="/guvenlik.js"></script>
     <script>
         let tumAvmler = [];
         let tumIsletmeler = [];
@@ -353,13 +354,23 @@
         async function adminGiris() {
             const sifre = document.getElementById('adminSifre').value.trim();
             if (!sifre) return;
+            const hash = await sifreHashle(sifre);
             const doc = await db.collection('sistem').doc('admin').get();
             if (!doc.exists) {
-                await db.collection('sistem').doc('admin').set({ sifre: sifre });
+                // İlk giriş — hash ile kaydet
+                await db.collection('sistem').doc('admin').set({ sifreHash: hash });
                 basariliGiris();
                 return;
             }
-            if (doc.data().sifre === sifre) {
+            // Hash ile kontrol
+            if (doc.data().sifreHash === hash) {
+                basariliGiris();
+            } else if (doc.data().sifre === sifre) {
+                // Eski düz metin şifre — migrate et
+                await db.collection('sistem').doc('admin').update({
+                    sifreHash: hash,
+                    sifre: firebase.firestore.FieldValue.delete()
+                });
                 basariliGiris();
             } else {
                 const el = document.getElementById('girisHata');
@@ -375,11 +386,11 @@
         }
 
         // ========== NAVİGASYON ==========
-        function sayfaAc(isim) {
+        function sayfaAc(isim, btn) {
             document.querySelectorAll('.sayfa').forEach(s => s.classList.remove('aktif'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('aktif'));
             document.getElementById('sayfa-' + isim).classList.add('aktif');
-            event.currentTarget.classList.add('aktif');
+            if (btn) btn.classList.add('aktif');
         }
 
         // ========== DÖNEM ==========
@@ -430,16 +441,16 @@
         function oturumlariYukle() {
             const baslangic = donemBaslangic();
 
-            // Tek where, JS'te filtrele (index sorunu olmasın)
+            // Dönem bazlı sorgu — tüm oturumları çekmek yerine
             db.collection('oturumlar')
-                .where('isletmeId', '!=', null)
+                .where('olusturma', '>=', baslangic)
                 .get()
                 .then(snap => {
                     oturumVerileri = [];
                     snap.forEach(doc => {
                         const d = doc.data();
-                        // Kod üretilmiş + dönem içindeki oturumlar
-                        if (d.kod && d.olusturma && d.olusturma.toDate() >= baslangic) {
+                        // Kod üretilmiş oturumlar
+                        if (d.kod && d.isletmeId) {
                             oturumVerileri.push(d);
                         }
                     });
@@ -495,8 +506,8 @@
             document.querySelector('#kodTablosu tbody').innerHTML = satirlar.length > 0
                 ? satirlar.map(s => `
                     <tr>
-                        <td style="font-weight:700">${s.ad}</td>
-                        <td style="color:#64748b">${s.avm}</td>
+                        <td style="font-weight:700">${GH(s.ad)}</td>
+                        <td style="color:#64748b">${GH(s.avm)}</td>
                         <td style="font-weight:700;color:#f97316;font-size:1.1rem">${s.sayi}</td>
                     </tr>
                 `).join('')
@@ -524,10 +535,10 @@
             document.querySelector('#avmTablosu tbody').innerHTML = tumAvmler.map(a => {
                 const isletmeSayisi = tumIsletmeler.filter(i => i.avmId === a.id).length;
                 return `<tr>
-                    <td style="font-weight:700">${a.ad}</td>
-                    <td style="color:#64748b">${a.slug || a.id}</td>
+                    <td style="font-weight:700">${GH(a.ad)}</td>
+                    <td style="color:#64748b">${GH(a.slug || a.id)}</td>
                     <td><span class="badge badge-mavi">${isletmeSayisi}</span></td>
-                    <td><button class="btn-mavi" onclick="avmQrGoster('${a.id}','${a.ad}')">📱 QR</button></td>
+                    <td><button class="btn-mavi" onclick="avmQrGoster('${a.id}','${GH(a.ad)}')">📱 QR</button></td>
                     <td><button class="btn-kirmizi" onclick="avmSil('${a.id}')">Sil</button></td>
                 </tr>`;
             }).join('');
@@ -568,24 +579,30 @@
             if (!ad) { hataBildirim('İşletme adı girin'); return; };
             if (!sifre || sifre.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
 
-            const avm = tumAvmler.find(a => a.id === avmId);
-            const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
-            const calismaSaatleri = {};
-            gunler.forEach(g => { calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false }; });
+            try {
+                const sifreHash = await sifreHashle(sifre);
+                const avm = tumAvmler.find(a => a.id === avmId);
+                const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+                const calismaSaatleri = {};
+                gunler.forEach(g => { calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false }; });
 
-            await db.collection('isletmeler').add({
-                ad: ad, sifre: sifre, avmId: avmId, avmAdi: avm ? avm.ad : '',
-                yetkili: yetkili, telefon: telefon, tanitim: '',
-                calismaSaatleri: calismaSaatleri, gunOzel: {},
-                durum: 'aktif',
-                olusturma: firebase.firestore.FieldValue.serverTimestamp()
-            });
+                await db.collection('isletmeler').add({
+                    ad: ad, sifreHash: sifreHash, avmId: avmId, avmAdi: avm ? avm.ad : '',
+                    yetkili: yetkili, telefon: telefon, tanitim: '',
+                    calismaSaatleri: calismaSaatleri, gunOzel: {},
+                    durum: 'aktif',
+                    olusturma: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-            document.getElementById('yeniIsletmeAd').value = '';
-            document.getElementById('yeniIsletmeYetkili').value = '';
-            document.getElementById('yeniIsletmeTelefon').value = '';
-            document.getElementById('yeniIsletmeSifre').value = '';
-            basariBildirim(ad + ' eklendi');
+                document.getElementById('yeniIsletmeAd').value = '';
+                document.getElementById('yeniIsletmeYetkili').value = '';
+                document.getElementById('yeniIsletmeTelefon').value = '';
+                document.getElementById('yeniIsletmeSifre').value = '';
+                basariBildirim(ad + ' eklendi');
+            } catch(e) {
+                console.error('İşletme ekleme hatası:', e);
+                hataBildirim('İşletme eklenirken hata oluştu');
+            }
         }
 
         // ========== İŞLETMELER (KART) ==========
@@ -606,14 +623,14 @@
             }
 
             grid.innerHTML = liste.map(i => {
-                const harf = (i.ad || '?').charAt(0).toUpperCase();
+                const harf = GH((i.ad || '?').charAt(0).toUpperCase());
                 const avm = tumAvmler.find(a => a.id === i.avmId);
                 const askida = i.durum === 'askida';
                 return `
                 <div class="isletme-kart ${askida ? 'askida' : ''}" onclick="isletmeDetayAc('${i.id}')">
                     <div class="ikon">${harf}</div>
-                    <div class="ad">${i.ad}</div>
-                    <div class="avm-adi">${avm ? avm.ad : ''}</div>
+                    <div class="ad">${GH(i.ad)}</div>
+                    <div class="avm-adi">${avm ? GH(avm.ad) : ''}</div>
                     <span class="durum-badge ${askida ? 'askida-b' : 'aktif-b'}">${askida ? 'Askıda' : 'Aktif'}</span>
                 </div>`;
             }).join('');
@@ -637,19 +654,19 @@
                 </div>
                 <div class="detay-satir">
                     <span class="label">AVM</span>
-                    <span class="value">${avm ? avm.ad : '-'}</span>
+                    <span class="value">${avm ? GH(avm.ad) : '-'}</span>
                 </div>
                 <div class="detay-satir">
                     <span class="label">Yetkili</span>
-                    <span class="value">${i.yetkili || 'Belirtilmemiş'}</span>
+                    <span class="value">${GH(i.yetkili) || 'Belirtilmemiş'}</span>
                 </div>
                 <div class="detay-satir">
                     <span class="label">Telefon</span>
-                    <span class="value">${i.telefon ? '<a href="tel:' + i.telefon + '" style="color:#3b82f6;text-decoration:none">' + i.telefon + '</a>' : 'Belirtilmemiş'}</span>
+                    <span class="value">${i.telefon ? '<a href="tel:' + GH(i.telefon) + '" style="color:#3b82f6;text-decoration:none">' + GH(i.telefon) + '</a>' : 'Belirtilmemiş'}</span>
                 </div>
                 <div class="detay-satir">
                     <span class="label">Tanıtım</span>
-                    <span class="value" style="font-size:0.85rem;color:#94a3b8">${i.tanitim || '-'}</span>
+                    <span class="value" style="font-size:0.85rem;color:#94a3b8">${GH(i.tanitim) || '-'}</span>
                 </div>
                 <div class="detay-satir">
                     <span class="label">Kayıt</span>
@@ -718,12 +735,18 @@
             const sifre = document.getElementById('editSifre').value.trim();
             if (sifre) {
                 if (sifre.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
-                guncelleme.sifre = sifre;
+                guncelleme.sifreHash = await sifreHashle(sifre);
+                guncelleme.sifre = firebase.firestore.FieldValue.delete();
             }
 
-            await db.collection('isletmeler').doc(seciliDetayId).update(guncelleme);
-            document.getElementById('detayOverlay').style.display = 'none';
-            basariBildirim(ad + ' güncellendi');
+            try {
+                await db.collection('isletmeler').doc(seciliDetayId).update(guncelleme);
+                document.getElementById('detayOverlay').style.display = 'none';
+                basariBildirim(ad + ' güncellendi');
+            } catch(e) {
+                console.error('Düzenleme hatası:', e);
+                hataBildirim('Güncelleme sırasında hata oluştu');
+            }
         }
 
         // ========== ASKIYA AL / AKTİFLEŞTİR ==========
@@ -781,7 +804,8 @@
         async function adminSifreDegistir() {
             const yeni = document.getElementById('yeniAdminSifre').value.trim();
             if (!yeni || yeni.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
-            await db.collection('sistem').doc('admin').update({ sifre: yeni });
+            const hash = await sifreHashle(yeni);
+            await db.collection('sistem').doc('admin').update({ sifreHash: hash, sifre: firebase.firestore.FieldValue.delete() });
             document.getElementById('yeniAdminSifre').value = '';
             basariBildirim('Admin şifresi değiştirildi');
         }

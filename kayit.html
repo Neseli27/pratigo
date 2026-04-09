@@ -204,6 +204,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
+    <script src="/guvenlik.js"></script>
     <script>
         let tumAvmler = [];
 
@@ -214,7 +215,7 @@
 
             const select = document.getElementById('avmSecim');
             select.innerHTML = '<option value="">AVM Seçiniz...</option>' +
-                tumAvmler.map(a => '<option value="' + a.id + '">' + a.ad + '</option>').join('');
+                tumAvmler.map(a => '<option value="' + a.id + '">' + GH(a.ad) + '</option>').join('');
         });
 
         async function kayitOl() {
@@ -234,39 +235,47 @@
 
             document.getElementById('btnKayit').disabled = true;
 
-            const mevcut = await db.collection('isletmeler')
-                .where('ad', '==', ad)
-                .where('avmId', '==', avmId)
-                .get();
+            try {
+                const mevcut = await db.collection('isletmeler')
+                    .where('ad', '==', ad)
+                    .where('avmId', '==', avmId)
+                    .get();
 
-            if (!mevcut.empty) {
+                if (!mevcut.empty) {
+                    document.getElementById('btnKayit').disabled = false;
+                    return mesajGoster('Bu isimde bir işletme zaten kayıtlı', 'hata');
+                }
+
+                const sifreHash = await sifreHashle(sifre);
+
+                const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+                const calismaSaatleri = {};
+                gunler.forEach(g => {
+                    calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false };
+                });
+
+                await db.collection('isletmeler').add({
+                    ad: ad,
+                    sifreHash: sifreHash,
+                    avmId: avmId,
+                    avmAdi: avmAdi,
+                    tanitim: tanitim,
+                    yetkili: yetkili,
+                    telefon: telefon,
+                    calismaSaatleri: calismaSaatleri,
+                    gunOzel: {},
+                    durum: 'aktif',
+                    olusturma: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                document.getElementById('basariMesaj').textContent = 'İşletmeniz ' + avmAdi + ' bünyesine eklendi.';
+                document.getElementById('formAlani').style.display = 'none';
+                document.getElementById('basariKutu').style.display = 'block';
+            } catch(e) {
+                console.error('Kayıt hatası:', e);
                 document.getElementById('btnKayit').disabled = false;
-                return mesajGoster('Bu isimde bir işletme zaten kayıtlı', 'hata');
+                mesajGoster('Kayıt sırasında hata oluştu', 'hata');
             }
-
-            const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
-            const calismaSaatleri = {};
-            gunler.forEach(g => {
-                calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false };
-            });
-
-            await db.collection('isletmeler').add({
-                ad: ad,
-                sifre: sifre,
-                avmId: avmId,
-                avmAdi: avmAdi,
-                tanitim: tanitim,
-                yetkili: yetkili,
-                telefon: telefon,
-                calismaSaatleri: calismaSaatleri,
-                gunOzel: {},
-                durum: 'aktif',
-                olusturma: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            document.getElementById('basariMesaj').textContent = 'İşletmeniz ' + avmAdi + ' bünyesine eklendi.';
-            document.getElementById('formAlani').style.display = 'none';
-            document.getElementById('basariKutu').style.display = 'block';
         }
 
         function mesajGoster(text, tip) {

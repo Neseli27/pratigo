@@ -1,9 +1,15 @@
-const CACHE_NAME = 'pratigo-v8';
+const CACHE_NAME = 'pratigo-v9';
 const ASSETS = [
     '/',
     '/manifest.json',
     '/icon-192.png',
-    '/icon-512.png'
+    '/icon-512.png',
+    '/guvenlik.js',
+    '/firebase-config.js',
+    '/kasiyer',
+    '/musteri',
+    '/kayit',
+    '/avm'
 ];
 
 // Yüklenince temel dosyaları önbelleğe al

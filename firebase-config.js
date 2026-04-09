@@ -1,7 +1,8 @@
 // ==============================
 // PRATİGO - Firebase Yapılandırması
 // ==============================
-// Kendi Firebase proje bilgilerinizi buraya girin
+// ÖNEMLİ: Firestore Security Rules'u Firebase Console'dan ayarlayın.
+// Detaylı kural önerileri için SECURITY-RULES.md dosyasına bakın.
 
 const firebaseConfig = {
     apiKey: "AIzaSyCqUSoowo2EbKKhG0SBcIzBYddwYOzHKRo",
