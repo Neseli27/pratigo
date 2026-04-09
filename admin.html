@@ -200,6 +200,7 @@
                 <div class="panel-baslik">Yeni AVM Ekle</div>
                 <div class="form-satir">
                     <input type="text" id="yeniAvmAd" placeholder="AVM Adı (örn: Primemall AVM)">
+                    <input type="text" id="yeniAvmSehir" placeholder="Şehir (örn: Gaziantep)">
                     <input type="text" id="yeniAvmSlug" placeholder="URL kodu (örn: primemall)">
                     <button class="btn-turuncu" onclick="avmEkle()">+ Ekle</button>
                 </div>
@@ -208,7 +209,7 @@
                 <div class="panel-baslik">Kayıtlı AVM'ler</div>
                 <div class="scroll-x">
                     <table class="tablo" id="avmTablosu">
-                        <thead><tr><th>AVM Adı</th><th>Slug</th><th>İşletme</th><th>QR Kod</th><th>İşlem</th></tr></thead>
+                        <thead><tr><th>AVM Adı</th><th>Şehir</th><th>Slug</th><th>İşletme</th><th>QR Kod</th><th>İşlem</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -223,8 +224,22 @@
             <div class="panel">
                 <div class="panel-baslik">+ Yeni İşletme Ekle</div>
                 <div class="form-satir">
-                    <select id="yeniIsletmeAvm"><option value="">AVM Seçin *</option></select>
+                    <select id="yeniIsletmeAvm"><option value="">AVM Seçin (bağımsızsa boş bırakın)</option></select>
                     <input type="text" id="yeniIsletmeAd" placeholder="İşletme Adı *">
+                </div>
+                <div class="form-satir">
+                    <input type="text" id="yeniIsletmeSehir" placeholder="Şehir (örn: Gaziantep)">
+                    <select id="yeniIsletmeTur">
+                        <option value="">Tür Seçin</option>
+                        <option value="Restoran">Restoran</option>
+                        <option value="Kafe">Kafe</option>
+                        <option value="Pastane">Pastane</option>
+                        <option value="Fırın">Fırın</option>
+                        <option value="Fast Food">Fast Food</option>
+                        <option value="Döner / Kebap">Döner / Kebap</option>
+                        <option value="Tatlıcı">Tatlıcı</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
                 </div>
                 <div class="form-satir">
                     <input type="text" id="yeniIsletmeYetkili" placeholder="Yetkili Ad Soyad">
@@ -313,6 +328,24 @@
                 <div style="margin-bottom:10px">
                     <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">AVM</label>
                     <select id="editAvm" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none"></select>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Şehir</label>
+                    <input type="text" id="editSehir" placeholder="Şehir" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Tür</label>
+                    <select id="editTur" style="width:100%;padding:10px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;outline:none">
+                        <option value="">Tür Seçin</option>
+                        <option value="Restoran">Restoran</option>
+                        <option value="Kafe">Kafe</option>
+                        <option value="Pastane">Pastane</option>
+                        <option value="Fırın">Fırın</option>
+                        <option value="Fast Food">Fast Food</option>
+                        <option value="Döner / Kebap">Döner / Kebap</option>
+                        <option value="Tatlıcı">Tatlıcı</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
                 </div>
                 <div style="margin-bottom:10px">
                     <label style="color:#64748b;font-size:0.8rem;display:block;margin-bottom:4px">Şifre Değiştir (boş bırakılırsa değişmez)</label>
@@ -517,6 +550,7 @@
         // ========== AVM'LER ==========
         async function avmEkle() {
             const ad = document.getElementById('yeniAvmAd').value.trim();
+            const sehir = document.getElementById('yeniAvmSehir').value.trim();
             let slug = document.getElementById('yeniAvmSlug').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
             if (!ad || !slug) { hataBildirim('AVM adı ve URL kodu girin'); return; };
 
@@ -524,10 +558,11 @@
             if (mevcut.exists) { hataBildirim('Bu URL kodu zaten kullanılıyor'); return; };
 
             await db.collection('avmler').doc(slug).set({
-                ad: ad, slug: slug,
+                ad: ad, slug: slug, sehir: sehir,
                 olusturma: firebase.firestore.FieldValue.serverTimestamp()
             });
             document.getElementById('yeniAvmAd').value = '';
+            document.getElementById('yeniAvmSehir').value = '';
             document.getElementById('yeniAvmSlug').value = '';
         }
 
@@ -536,6 +571,7 @@
                 const isletmeSayisi = tumIsletmeler.filter(i => i.avmId === a.id).length;
                 return `<tr>
                     <td style="font-weight:700">${GH(a.ad)}</td>
+                    <td style="color:#94a3b8">${GH(a.sehir || '-')}</td>
                     <td style="color:#64748b">${GH(a.slug || a.id)}</td>
                     <td><span class="badge badge-mavi">${isletmeSayisi}</span></td>
                     <td><button class="btn-mavi" onclick="avmQrGoster('${a.id}','${GH(a.ad)}')">📱 QR</button></td>
@@ -571,30 +607,41 @@
         async function isletmeEkle() {
             const avmId = document.getElementById('yeniIsletmeAvm').value;
             const ad = document.getElementById('yeniIsletmeAd').value.trim();
+            const sehir = document.getElementById('yeniIsletmeSehir').value.trim();
+            const tur = document.getElementById('yeniIsletmeTur').value;
             const yetkili = document.getElementById('yeniIsletmeYetkili').value.trim();
             const telefon = document.getElementById('yeniIsletmeTelefon').value.trim();
             const sifre = document.getElementById('yeniIsletmeSifre').value.trim();
 
-            if (!avmId) { hataBildirim('AVM seçin'); return; };
             if (!ad) { hataBildirim('İşletme adı girin'); return; };
             if (!sifre || sifre.length < 4) { hataBildirim('Şifre en az 4 karakter olmalı'); return; };
 
             try {
                 const sifreHash = await sifreHashle(sifre);
-                const avm = tumAvmler.find(a => a.id === avmId);
+                const avm = avmId ? tumAvmler.find(a => a.id === avmId) : null;
                 const gunler = ['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
                 const calismaSaatleri = {};
                 gunler.forEach(g => { calismaSaatleri[g] = { acilis: '10:00', kapanis: '22:00', kapali: false }; });
 
-                await db.collection('isletmeler').add({
-                    ad: ad, sifreHash: sifreHash, avmId: avmId, avmAdi: avm ? avm.ad : '',
+                const yeniIsletme = {
+                    ad: ad, sifreHash: sifreHash,
                     yetkili: yetkili, telefon: telefon, tanitim: '',
+                    sehir: sehir, tur: tur,
                     calismaSaatleri: calismaSaatleri, gunOzel: {},
                     durum: 'aktif',
                     olusturma: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                };
+
+                if (avmId) {
+                    yeniIsletme.avmId = avmId;
+                    yeniIsletme.avmAdi = avm ? avm.ad : '';
+                }
+
+                await db.collection('isletmeler').add(yeniIsletme);
 
                 document.getElementById('yeniIsletmeAd').value = '';
+                document.getElementById('yeniIsletmeSehir').value = '';
+                document.getElementById('yeniIsletmeTur').value = '';
                 document.getElementById('yeniIsletmeYetkili').value = '';
                 document.getElementById('yeniIsletmeTelefon').value = '';
                 document.getElementById('yeniIsletmeSifre').value = '';
@@ -610,7 +657,8 @@
             const filtre = document.getElementById('isletmeFiltre').value;
             const durumFiltre = document.getElementById('isletmeDurumFiltre').value;
             let liste = tumIsletmeler;
-            if (filtre !== 'hepsi') liste = liste.filter(i => i.avmId === filtre);
+            if (filtre === 'bagimsiz') liste = liste.filter(i => !i.avmId);
+            else if (filtre !== 'hepsi') liste = liste.filter(i => i.avmId === filtre);
             if (durumFiltre !== 'hepsi') {
                 if (durumFiltre === 'askida') liste = liste.filter(i => i.durum === 'askida');
                 else liste = liste.filter(i => i.durum !== 'askida');
@@ -654,7 +702,15 @@
                 </div>
                 <div class="detay-satir">
                     <span class="label">AVM</span>
-                    <span class="value">${avm ? GH(avm.ad) : '-'}</span>
+                    <span class="value">${avm ? GH(avm.ad) : '<span style="color:#475569">Bağımsız</span>'}</span>
+                </div>
+                <div class="detay-satir">
+                    <span class="label">Şehir</span>
+                    <span class="value">${GH(i.sehir) || '<span style="color:#334155">-</span>'}</span>
+                </div>
+                <div class="detay-satir">
+                    <span class="label">Tür</span>
+                    <span class="value">${GH(i.tur) || '<span style="color:#334155">-</span>'}</span>
                 </div>
                 <div class="detay-satir">
                     <span class="label">Yetkili</span>
@@ -700,10 +756,15 @@
             document.getElementById('editYetkili').value = i.yetkili || '';
             document.getElementById('editTelefon').value = i.telefon || '';
             document.getElementById('editTanitim').value = i.tanitim || '';
+            document.getElementById('editSehir').value = i.sehir || '';
             document.getElementById('editSifre').value = '';
 
-            // AVM select
-            document.getElementById('editAvm').innerHTML = tumAvmler.map(a =>
+            // Tür select
+            const turSelect = document.getElementById('editTur');
+            turSelect.value = i.tur || '';
+
+            // AVM select — opsiyonel
+            document.getElementById('editAvm').innerHTML = '<option value="">(Bağımsız — AVM yok)</option>' + tumAvmler.map(a =>
                 `<option value="${a.id}" ${a.id === i.avmId ? 'selected' : ''}>${a.ad}</option>`
             ).join('');
 
@@ -721,16 +782,24 @@
             if (!ad) { hataBildirim('İşletme adı boş olamaz'); return; };
 
             const avmId = document.getElementById('editAvm').value;
-            const avm = tumAvmler.find(a => a.id === avmId);
+            const avm = avmId ? tumAvmler.find(a => a.id === avmId) : null;
 
             const guncelleme = {
                 ad: ad,
                 yetkili: document.getElementById('editYetkili').value.trim(),
                 telefon: document.getElementById('editTelefon').value.trim(),
                 tanitim: document.getElementById('editTanitim').value.trim(),
-                avmId: avmId,
-                avmAdi: avm ? avm.ad : ''
+                sehir: document.getElementById('editSehir').value.trim(),
+                tur: document.getElementById('editTur').value
             };
+
+            if (avmId) {
+                guncelleme.avmId = avmId;
+                guncelleme.avmAdi = avm ? avm.ad : '';
+            } else {
+                guncelleme.avmId = firebase.firestore.FieldValue.delete();
+                guncelleme.avmAdi = firebase.firestore.FieldValue.delete();
+            }
 
             const sifre = document.getElementById('editSifre').value.trim();
             if (sifre) {
@@ -793,10 +862,10 @@
 
         // ========== FİLTRELER ==========
         function filtreleriGuncelle() {
-            const avmOptions = '<option value="hepsi">Tüm AVM\'ler</option>' +
+            const avmOptions = '<option value="hepsi">Tüm AVM\'ler</option><option value="bagimsiz">Bağımsız Mekanlar</option>' +
                 tumAvmler.map(a => `<option value="${a.id}">${a.ad}</option>`).join('');
             document.getElementById('isletmeFiltre').innerHTML = avmOptions;
-            document.getElementById('yeniIsletmeAvm').innerHTML = '<option value="">AVM Seçin *</option>' + 
+            document.getElementById('yeniIsletmeAvm').innerHTML = '<option value="">(Bağımsız — AVM yok)</option>' + 
                 tumAvmler.map(a => `<option value="${a.id}">${a.ad}</option>`).join('');
         }
 
