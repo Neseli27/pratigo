@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>PRATİGO — AVM Toplu Ekleme</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;padding:40px 20px;max-width:700px;margin:0 auto}
+        h1{color:#f97316;font-size:1.4rem;margin-bottom:8px}
+        p{color:#64748b;font-size:.85rem;margin-bottom:24px}
+        .avm-satir{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+        .avm-satir .ad{font-weight:700;font-size:.9rem}.avm-satir .sehir{color:#64748b;font-size:.8rem;margin-top:2px}
+        .avm-satir .durum{font-size:.75rem;padding:3px 10px;border-radius:10px;font-weight:600}
+        .avm-satir .durum.bekliyor{background:#1e293b;color:#64748b;border:1px solid #334155}
+        .avm-satir .durum.eklendi{background:#14532d;color:#22c55e}
+        .avm-satir .durum.hata{background:#450a0a;color:#ef4444}
+        .avm-satir .durum.vardi{background:#422006;color:#eab308}
+        #sonuc{margin-top:16px;padding:16px;background:#0f172a;border-radius:10px;font-size:.85rem;color:#94a3b8;display:none}
+        button{padding:14px 28px;background:#f97316;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:16px}
+        button:disabled{opacity:.4;cursor:not-allowed}
+        button:active{transform:scale(.98)}
+    </style>
+</head>
+<body>
+    <h1>PRATİGO — AVM Toplu Ekleme</h1>
+    <p>İstanbul, Ankara ve İzmir'in en büyük AVM'lerini Firestore'a ekler. Zaten varsa atlar.</p>
+
+    <div id="liste"></div>
+    <button id="btnEkle" onclick="tumunuEkle()">Tümünü Ekle</button>
+    <div id="sonuc"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script>
+        const avmler = [
+            // İSTANBUL
+            { slug: 'forum-istanbul',       ad: 'Forum İstanbul',           sehir: 'İstanbul' },
+            { slug: 'mall-of-istanbul',     ad: 'Mall of İstanbul',         sehir: 'İstanbul' },
+            { slug: 'cevahir',              ad: 'Cevahir AVM',              sehir: 'İstanbul' },
+            { slug: 'zorlu-center',         ad: 'Zorlu Center',             sehir: 'İstanbul' },
+            { slug: 'istinyepark-istanbul',  ad: 'İstinyePark İstanbul',     sehir: 'İstanbul' },
+            { slug: 'marmara-forum',        ad: 'Marmara Forum',            sehir: 'İstanbul' },
+            { slug: 'emaar-square',         ad: 'Emaar Square Mall',        sehir: 'İstanbul' },
+            { slug: 'vadistanbul',          ad: 'Vadistanbul AVM',          sehir: 'İstanbul' },
+            { slug: 'akasya',               ad: 'Akasya AVM',               sehir: 'İstanbul' },
+            { slug: 'marmara-park',         ad: 'Marmara Park',             sehir: 'İstanbul' },
+            { slug: 'torium',               ad: 'Torium AVM',               sehir: 'İstanbul' },
+            { slug: 'metropol-istanbul',    ad: 'Metropol İstanbul',        sehir: 'İstanbul' },
+            { slug: 'capacity',             ad: 'Capacity AVM',             sehir: 'İstanbul' },
+            { slug: 'palladium-atasehir',   ad: 'Palladium Ataşehir',       sehir: 'İstanbul' },
+            { slug: 'kanyon',               ad: 'Kanyon AVM',               sehir: 'İstanbul' },
+
+            // ANKARA
+            { slug: 'ankamall',             ad: 'Ankamall',                  sehir: 'Ankara' },
+            { slug: 'kentpark',             ad: 'Kentpark AVM',              sehir: 'Ankara' },
+            { slug: 'panora',               ad: 'Panora AVM',                sehir: 'Ankara' },
+            { slug: 'antares',              ad: 'Antares AVM',               sehir: 'Ankara' },
+            { slug: 'forum-ankara',         ad: 'Forum Ankara Outlet',       sehir: 'Ankara' },
+            { slug: 'next-level',           ad: 'Next Level AVM',            sehir: 'Ankara' },
+            { slug: 'cepa',                 ad: 'Cepa AVM',                  sehir: 'Ankara' },
+            { slug: 'armada',               ad: 'Armada AVM',                sehir: 'Ankara' },
+            { slug: 'gordion',              ad: 'Gordion AVM',               sehir: 'Ankara' },
+            { slug: 'one-tower',            ad: 'One Tower AVM',             sehir: 'Ankara' },
+
+            // İZMİR
+            { slug: 'agora-izmir',          ad: 'Agora AVM',                 sehir: 'İzmir' },
+            { slug: 'optimum-izmir',        ad: 'Optimum İzmir',             sehir: 'İzmir' },
+            { slug: 'forum-bornova',        ad: 'Forum Bornova',             sehir: 'İzmir' },
+            { slug: 'istinyepark-izmir',    ad: 'İstinyePark İzmir',         sehir: 'İzmir' },
+            { slug: 'hilltown-karsiyaka',   ad: 'Hilltown Karşıyaka',        sehir: 'İzmir' },
+            { slug: 'mavibahce',            ad: 'MaviBahçe AVM',             sehir: 'İzmir' },
+            { slug: 'konak-pier',           ad: 'Konak Pier',                sehir: 'İzmir' },
+            { slug: 'westpark-izmir',       ad: 'Westpark Outlet',           sehir: 'İzmir' },
+        ];
+
+        // Listeyi göster
+        document.getElementById('liste').innerHTML = avmler.map((a, i) => `
+            <div class="avm-satir" id="satir_${i}">
+                <div><div class="ad">${a.ad}</div><div class="sehir">${a.sehir}</div></div>
+                <span class="durum bekliyor" id="durum_${i}">Bekliyor</span>
+            </div>
+        `).join('');
+
+        async function tumunuEkle() {
+            const btn = document.getElementById('btnEkle');
+            btn.disabled = true;
+            btn.textContent = 'Ekleniyor...';
+
+            let eklenen = 0, vardi = 0, hata = 0;
+
+            for (let i = 0; i < avmler.length; i++) {
+                const a = avmler[i];
+                const durumEl = document.getElementById('durum_' + i);
+                try {
+                    const mevcut = await db.collection('avmler').doc(a.slug).get();
+                    if (mevcut.exists) {
+                        // Varsa sadece şehir güncelle (eksikse)
+                        const data = mevcut.data();
+                        if (!data.sehir && a.sehir) {
+                            await db.collection('avmler').doc(a.slug).update({ sehir: a.sehir });
+                        }
+                        durumEl.textContent = 'Zaten var';
+                        durumEl.className = 'durum vardi';
+                        vardi++;
+                    } else {
+                        await db.collection('avmler').doc(a.slug).set({
+                            ad: a.ad,
+                            slug: a.slug,
+                            sehir: a.sehir,
+                            olusturma: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        durumEl.textContent = 'Eklendi ✓';
+                        durumEl.className = 'durum eklendi';
+                        eklenen++;
+                    }
+                } catch (e) {
+                    console.error(a.slug, e);
+                    durumEl.textContent = 'Hata!';
+                    durumEl.className = 'durum hata';
+                    hata++;
+                }
+            }
+
+            const sonuc = document.getElementById('sonuc');
+            sonuc.style.display = 'block';
+            sonuc.innerHTML = `<strong style="color:#22c55e">${eklenen} AVM eklendi</strong> · ${vardi} zaten vardı · ${hata} hata`;
+            btn.textContent = 'Tamamlandı ✓';
+        }
+    </script>
+</body>
+</html>
