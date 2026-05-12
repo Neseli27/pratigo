@@ -310,11 +310,15 @@
                 if(kalan<=0){
                     clearInterval(geriSayimlar[siparisId]);
                     delete geriSayimlar[siparisId];
-                    // Otomatik iptal
-                    db.collection('siparisler').doc(siparisId).update({
-                        durum:'sure_doldu',
-                        iptalZaman:firebase.firestore.FieldValue.serverTimestamp()
-                    }).catch(e=>console.error('Otomatik iptal hatası:',e));
+                    // Otomatik iptal — sure_doldu, oturum kodunu da serbest birak
+                    db.collection('siparisler').doc(siparisId).get().then(sd=>{
+                        const ot=sd.exists?sd.data().oturumId:null;
+                        db.collection('siparisler').doc(siparisId).update({
+                            durum:'sure_doldu',
+                            iptalZaman:firebase.firestore.FieldValue.serverTimestamp()
+                        }).catch(e=>console.error('Otomatik iptal hatası:',e));
+                        if(ot)db.collection('oturumlar').doc(ot).update({kod:null,kodGosterim:null}).catch(()=>{});
+                    });
                 }
             },1000);
         }
@@ -455,7 +459,7 @@
 
         async function hazirIsaretle(siparisId){const d=await db.collection('siparisler').doc(siparisId).get();const sp=d.data();const g={durum:'hazir',hazirZaman:firebase.firestore.FieldValue.serverTimestamp()};if(sp.mutfagaGiris){g.beklemeDk=Math.round((Date.now()-sp.mutfagaGiris.toDate().getTime())/60000)}await db.collection('siparisler').doc(siparisId).update(g);ortalamaGuncelle()}
 
-        async function siparisIptal(siparisId){if(!await onayGoster('Bu siparişi iptal etmek istediğinize emin misiniz?',true))return;if(geriSayimlar[siparisId]){clearInterval(geriSayimlar[siparisId]);delete geriSayimlar[siparisId]}await db.collection('siparisler').doc(siparisId).update({durum:'iptal',iptalZaman:firebase.firestore.FieldValue.serverTimestamp()})}
+        async function siparisIptal(siparisId){if(!await onayGoster('Bu siparişi iptal etmek istediğinize emin misiniz?',true))return;if(geriSayimlar[siparisId]){clearInterval(geriSayimlar[siparisId]);delete geriSayimlar[siparisId]}const sd=await db.collection('siparisler').doc(siparisId).get();const ot=sd.exists?sd.data().oturumId:null;await db.collection('siparisler').doc(siparisId).update({durum:'iptal',iptalZaman:firebase.firestore.FieldValue.serverTimestamp()});if(ot)db.collection('oturumlar').doc(ot).update({kod:null,kodGosterim:null}).catch(()=>{})}
 
         // ORTALAMA
         async function ortalamaGuncelle(){try{const d=new Date();d.setDate(d.getDate()-7);d.setHours(0,0,0,0);const snap=await db.collection('siparisler').where('isletmeId','==',isletmeId).where('olusturma','>=',d).get();const s=[];snap.forEach(doc=>{const dd=doc.data();if((dd.durum==='hazir'||dd.durum==='teslim_edildi')&&dd.beklemeDk>0&&dd.beklemeDk<120)s.push({dk:dd.beklemeDk,z:dd.olusturma?.toDate()||new Date(0)})});s.sort((a,b)=>b.z-a.z);const s20=s.slice(0,20).map(x=>x.dk);if(s20.length<3){await db.collection('isletmeler').doc(isletmeId).update({tapiSure:null,tapiVeriSayisi:s20.length});return}s20.sort((a,b)=>a-b);const t=s20.length>5?s20.slice(1,-1):s20;const o=Math.round(t.reduce((a,b)=>a+b,0)/t.length);await db.collection('isletmeler').doc(isletmeId).update({tapiSure:o,tapiVeriSayisi:s20.length,tapiSonGuncelleme:firebase.firestore.FieldValue.serverTimestamp()})}catch(e){console.error(e)}}
