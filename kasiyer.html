@@ -18,6 +18,7 @@
         .topbar{background:#131b2e;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e293b}
         .topbar-sol{display:flex;align-items:center;gap:10px}
         .isletme-avatar{width:34px;height:34px;background:#f97316;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff}
+        .isletme-bilgi .avm-adi-ust{font-size:.65rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px;display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
         .isletme-bilgi .isletme-adi{font-weight:800;font-size:1rem;color:#f8fafc;line-height:1.2}
         .isletme-bilgi .isletme-durum{font-size:.7rem;color:#22c55e;display:flex;align-items:center;gap:4px}
         .isletme-bilgi .isletme-durum::before{content:'';width:6px;height:6px;background:#22c55e;border-radius:50%;display:inline-block}
@@ -200,6 +201,7 @@
         <div class="topbar-sol">
             <div class="isletme-avatar" id="topAvatar">B</div>
             <div class="isletme-bilgi">
+                <div class="avm-adi-ust" id="topAvmAdi"></div>
                 <div class="isletme-adi" id="topIsletmeAdi"></div>
                 <div class="isletme-durum" id="topDurum">Açık · sipariş bekleniyor</div>
             </div>
@@ -343,7 +345,7 @@
 
         function girisBasarili(id){
             isletmeId=id;document.getElementById('girisOverlay').style.display='none';
-            db.collection('isletmeler').doc(isletmeId).onSnapshot(doc=>{if(!doc.exists)return;isletmeData=doc.data();const ad=isletmeData.ad||'';document.getElementById('topIsletmeAdi').textContent=ad;document.getElementById('topAvatar').textContent=ad.charAt(0).toUpperCase();document.getElementById('profilAd').value=ad;document.getElementById('profilTanitim').value=isletmeData.tanitim||'';document.getElementById('profilYetkili').value=isletmeData.yetkili||'';document.getElementById('profilTelefon').value=isletmeData.telefon||'';saatlerFormCiz(isletmeData.calismaSaatleri);qrOlustur();kategorileriCiz();menuListeCiz()});
+            db.collection('isletmeler').doc(isletmeId).onSnapshot(doc=>{if(!doc.exists)return;isletmeData=doc.data();const ad=isletmeData.ad||'';document.getElementById('topIsletmeAdi').textContent=ad;document.getElementById('topAvatar').textContent=ad.charAt(0).toUpperCase();const avmEl=document.getElementById('topAvmAdi');if(avmEl){if(isletmeData.avmAdi){avmEl.textContent='🏢 '+isletmeData.avmAdi;avmEl.style.display='block'}else if(isletmeData.sehir){avmEl.textContent='📍 '+isletmeData.sehir;avmEl.style.display='block'}else{avmEl.style.display='none'}}document.getElementById('profilAd').value=ad;document.getElementById('profilTanitim').value=isletmeData.tanitim||'';document.getElementById('profilYetkili').value=isletmeData.yetkili||'';document.getElementById('profilTelefon').value=isletmeData.telefon||'';saatlerFormCiz(isletmeData.calismaSaatleri);qrOlustur();kategorileriCiz();menuListeCiz()});
             db.collection('isletmeler').doc(isletmeId).collection('menu').orderBy('sira','asc').onSnapshot(snap=>{menuVerisi=[];snap.forEach(doc=>menuVerisi.push({id:doc.id,...doc.data()}));kasiyerMenuCiz();menuListeCiz()});
 
             // Siparişleri dinle — beklemede DAHİL

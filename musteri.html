@@ -14,7 +14,7 @@
         *{margin:0;padding:0;box-sizing:border-box}html{background:#060a12}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#f8fafc;min-height:100vh;max-width:500px;margin:0 auto;box-shadow:0 0 60px rgba(0,0,0,.5);padding-bottom:72px;position:relative}
         .header{padding:14px 16px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e293b;position:relative}
         .header .ikon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;flex-shrink:0}
-        .header .bilgi{flex:1;min-width:0}.header .isletme-adi{font-size:17px;font-weight:800}.header .alt-bilgi{font-size:12px;color:#64748b;margin-top:1px}.header .alt-bilgi .acik{color:#22c55e}
+        .header .bilgi{flex:1;min-width:0}.header .avm-adi-ust{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.header .isletme-adi{font-size:17px;font-weight:800}.header .alt-bilgi{font-size:12px;color:#64748b;margin-top:1px}.header .alt-bilgi .acik{color:#22c55e}
         .header .btn-geri{width:38px;height:38px;border-radius:10px;background:#1e293b;border:1.5px solid #334155;color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;position:absolute;left:14px;top:50%;transform:translateY(-50%);transition:all .15s;-webkit-tap-highlight-color:transparent}
         .header .btn-geri:active{background:#334155;border-color:#f97316;color:#f97316;transform:translateY(-50%) scale(.94)}
         .header .btn-geri svg{width:18px;height:18px}
@@ -106,6 +106,7 @@
         <div style="width:36px"></div>
         <div class="ikon" id="isletmeIkon">P</div>
         <div class="bilgi">
+            <div class="avm-adi-ust" id="avmAdiUst"></div>
             <div class="isletme-adi" id="isletmeAdi">...</div>
             <div class="alt-bilgi" id="altBilgi"><span class="acik">Açık</span></div>
         </div>
@@ -144,7 +145,7 @@
         let _sepetYuklendi=false;
         db.collection('oturumlar').doc(oturumId).onSnapshot(doc=>{if(!doc.exists)return;oturumVerisi=doc.data();if(!_sepetYuklendi){if(Array.isArray(oturumVerisi.sepet)&&oturumVerisi.sepet.length){sepet=oturumVerisi.sepet.map(s=>({...s}));sepetGuncelle()}if(oturumVerisi.kod){kodUretildi=true}_sepetYuklendi=true}});
 
-        db.collection('isletmeler').doc(isletmeId).onSnapshot(doc=>{if(!doc.exists)return;isletmeVerisi=doc.data();document.getElementById('isletmeAdi').textContent=isletmeVerisi.ad||'';document.getElementById('isletmeIkon').textContent=(isletmeVerisi.ad||'P').charAt(0).toUpperCase();calismaSaatiKontrol();kategoriChipsCiz();menuCiz()});
+        db.collection('isletmeler').doc(isletmeId).onSnapshot(doc=>{if(!doc.exists)return;isletmeVerisi=doc.data();document.getElementById('isletmeAdi').textContent=isletmeVerisi.ad||'';document.getElementById('isletmeIkon').textContent=(isletmeVerisi.ad||'P').charAt(0).toUpperCase();const avmEl=document.getElementById('avmAdiUst');if(avmEl){if(isletmeVerisi.avmAdi){avmEl.textContent='🏢 '+isletmeVerisi.avmAdi;avmEl.style.display='block'}else if(isletmeVerisi.sehir){avmEl.textContent='📍 '+isletmeVerisi.sehir;avmEl.style.display='block'}else{avmEl.style.display='none'}}calismaSaatiKontrol();kategoriChipsCiz();menuCiz()});
 
         function calismaSaatiKontrol(){const cs=isletmeVerisi.calismaSaatleri;if(!cs){isletmeAcik=true;altBilgiGuncelle();return}const s=new Date(),g=['pazar','pazartesi','sali','carsamba','persembe','cuma','cumartesi'],bg=g[s.getDay()],t=s.toISOString().split('T')[0];let gv=null;if(isletmeVerisi.gunOzel&&isletmeVerisi.gunOzel[t]){gv=isletmeVerisi.gunOzel[t]}else{gv=cs[bg]}if(!gv||gv.kapali){isletmeKapali('Bugün kapalıyız');return}const sa=String(s.getHours()).padStart(2,'0')+':'+String(s.getMinutes()).padStart(2,'0');if(sa<gv.acilis||sa>=gv.kapanis){isletmeKapali('Çalışma saatleri: '+gv.acilis+' - '+gv.kapanis);return}isletmeAcik=true;document.getElementById('kapaliBanner').style.display='none';altBilgiGuncelle()}
 
