@@ -837,16 +837,36 @@
         async function isletmeAdminSil() {
             const i = tumIsletmeler.find(x => x.id === seciliDetayId);
             if (!i) return;
-            if (!await onayGoster(i.ad + ' tamamen silinecek. Menüsü dahil tüm verileri kaybolacak.', true)) return;
+            if (!await onayGoster(i.ad + ' tamamen silinecek. Menü, oturum ve sipariş kayıtları dahil tüm verileri kaybolacak.', true)) return;
             if (!await onayGoster('Son kez onaylayın: ' + i.ad + ' SİLİNSİN Mİ?', true)) return;
 
-            const menuSnap = await db.collection('isletmeler').doc(seciliDetayId).collection('menu').get();
-            const batch = db.batch();
-            menuSnap.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
+            try {
+                // Menü subcollection
+                const menuSnap = await db.collection('isletmeler').doc(seciliDetayId).collection('menu').get();
+                // İlişkili oturumlar
+                const oturumSnap = await db.collection('oturumlar').where('isletmeId', '==', seciliDetayId).get();
+                // İlişkili siparişler
+                const siparisSnap = await db.collection('siparisler').where('isletmeId', '==', seciliDetayId).get();
 
-            await db.collection('isletmeler').doc(seciliDetayId).delete();
-            document.getElementById('detayOverlay').style.display = 'none';
+                // Batch limit 500; toplu silme parçala
+                const allRefs = [
+                    ...menuSnap.docs.map(d => d.ref),
+                    ...oturumSnap.docs.map(d => d.ref),
+                    ...siparisSnap.docs.map(d => d.ref)
+                ];
+                for (let k = 0; k < allRefs.length; k += 400) {
+                    const b = db.batch();
+                    allRefs.slice(k, k + 400).forEach(r => b.delete(r));
+                    await b.commit();
+                }
+
+                await db.collection('isletmeler').doc(seciliDetayId).delete();
+                document.getElementById('detayOverlay').style.display = 'none';
+                basariBildirim(i.ad + ' ve ' + (menuSnap.size + oturumSnap.size + siparisSnap.size) + ' ilişkili kayıt silindi');
+            } catch (e) {
+                console.error('Silme hatası:', e);
+                hataBildirim('Silme sırasında hata oluştu');
+            }
         }
 
         function detayQrGoster() {
