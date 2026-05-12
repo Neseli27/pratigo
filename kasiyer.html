@@ -353,6 +353,9 @@
             _siparisleriDinle();
             if(window._gunKontrol)clearInterval(window._gunKontrol);
             window._gunKontrol=setInterval(()=>{if(_kuyrukBaslangic().getTime()>_aktifBaslangicMs)_siparisleriDinle()},60000);
+            // Mutfak kartlarının ilerleme bar/kalan süre yazısı her 30sn DOM-update
+            if(window._mutfakInterval)clearInterval(window._mutfakInterval);
+            window._mutfakInterval=setInterval(()=>{const ts=isletmeData.tapiSure;if(!ts)return;document.querySelectorAll('.mutfak-kart').forEach(card=>{const mg=parseInt(card.dataset.mg||0);if(!mg)return;const gdk=(Date.now()-mg)/60000;const pct=Math.min(100,Math.round((gdk/ts)*100));const k=Math.max(0,Math.round(ts-gdk));const txt=k>0?'~'+k+' dk kaldı':'Süre doldu';const bar=card.querySelector('[data-mutfak-bar]');const kalan=card.querySelector('[data-mutfak-kalan]');if(bar)bar.style.width=pct+'%';if(kalan)kalan.textContent=txt})},30000);
             document.getElementById('raporTarih').value=new Date().toISOString().split('T')[0];raporYukle();
         }
 
@@ -422,12 +425,12 @@
             mutfakEl.innerHTML=mutfakList.length===0?'<div class="bos-kuyruk">Mutfakta sipariş yok</div>':mutfakList.map(s=>{
                 let pct=0,kalanTxt='';
                 if(s.mutfagaGiris&&isletmeData.tapiSure){const gdk=(Date.now()-s.mutfagaGiris.toDate().getTime())/60000;pct=Math.min(100,Math.round((gdk/isletmeData.tapiSure)*100));const k=Math.max(0,Math.round(isletmeData.tapiSure-gdk));kalanTxt=k>0?'~'+k+' dk kaldı':'Süre doldu'}
-                return `<div class="siparis-kart mutfak-kart">
+                return `<div class="siparis-kart mutfak-kart" data-mg="${s.mutfagaGiris?s.mutfagaGiris.toMillis():0}">
                     <div class="siparis-ust"><span class="mutfak-sira">${GH(s.siraNo)||'?'}</span><div class="mutfak-kod-toplam"><span>Kod: ${formatKod(s.musteriKod)}</span></div></div>
                     <div class="siparis-urunler">${(s.urunler||[]).map(u=>GH(u.ad)+' ×'+u.adet).join(', ')}</div>
                     ${s.not?'<div class="siparis-not">📝 '+GH(s.not)+'</div>':''}
-                    <div class="ilerleme-cubuk"><div class="ilerleme-ic" style="width:${pct}%"></div></div>
-                    <div class="kalan-sure">${kalanTxt}</div>
+                    <div class="ilerleme-cubuk"><div class="ilerleme-ic" data-mutfak-bar style="width:${pct}%"></div></div>
+                    <div class="kalan-sure" data-mutfak-kalan>${kalanTxt}</div>
                     <button class="btn-hazir" onclick="hazirIsaretle('${s.id}')">HAZIR</button>
                 </div>`}).join('');
         }
