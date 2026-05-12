@@ -127,12 +127,19 @@
         .bos-mesaj{text-align:center;padding:30px 20px;color:#334155;font-size:.85rem}
         .bos-mesaj .ikon{font-size:2rem;margin-bottom:8px}
 
-        /* === YÜKLEME (QR ile giriş) === */
-        .yukleme-overlay{position:fixed;inset:0;z-index:1000;background:#0b1120;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
-        .yukleme-overlay.goster{display:flex}
-        .spinner{width:48px;height:48px;border:3px solid #1e293b;border-top-color:#f97316;border-radius:50%;animation:spin .7s linear infinite}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .yukleme-text{color:#64748b;font-size:.9rem}
+        /* === YÜKLEME (QR ile giriş — AVM karşılama splash) === */
+        .hosgeldin-overlay{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#0b1120 0%,#1e293b 100%);display:none;align-items:center;justify-content:center;transition:opacity .5s ease-out}
+        .hosgeldin-overlay.goster{display:flex}
+        .hosgeldin-overlay.kapan{opacity:0;pointer-events:none}
+        .hosgeldin-icerik{text-align:center;padding:40px 24px;max-width:600px}
+        .hosgeldin-logo{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.8rem;color:#fff;margin:0 auto 24px;box-shadow:0 8px 32px rgba(249,115,22,.35);animation:logoGiris .6s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0}
+        .hosgeldin-avm{font-size:2.3rem;font-weight:900;letter-spacing:1px;margin-bottom:12px;background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.15;animation:avmGiris .7s cubic-bezier(.34,1.56,.64,1) .3s forwards;opacity:0}
+        .hosgeldin-mesaj{font-size:1.25rem;color:#cbd5e1;font-weight:500;margin-top:4px;animation:mesajGiris .5s ease-out .9s forwards;opacity:0}
+        .hosgeldin-badge{margin-top:28px;font-size:.7rem;color:#475569;letter-spacing:3px;font-weight:700;animation:mesajGiris .5s ease-out 1.3s forwards;opacity:0}
+        .hosgeldin-hata{color:#ef4444;font-size:.95rem;margin-top:16px;display:none}
+        @keyframes logoGiris{from{opacity:0;transform:scale(.5) rotate(-12deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+        @keyframes avmGiris{from{opacity:0;transform:scale(.8) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        @keyframes mesajGiris{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
         /* === ANİMASYONLAR === */
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -146,10 +153,15 @@
 </head>
 <body>
 
-    <!-- YÜKLEME (QR ile giriş) -->
-    <div class="yukleme-overlay" id="yuklemeOverlay">
-        <div class="spinner"></div>
-        <p class="yukleme-text" id="yuklemeText">Yükleniyor...</p>
+    <!-- YÜKLEME / AVM KARŞILAMA (QR ile giriş) -->
+    <div class="hosgeldin-overlay" id="hosgeldinOverlay">
+        <div class="hosgeldin-icerik">
+            <div class="hosgeldin-logo">P</div>
+            <div class="hosgeldin-avm" id="hosgeldinAvm">...</div>
+            <div class="hosgeldin-mesaj">Hoş Geldiniz</div>
+            <div class="hosgeldin-badge">PRATİGO</div>
+            <p class="hosgeldin-hata" id="hosgeldinHata"></p>
+        </div>
     </div>
 
     <!-- HEADER -->
@@ -252,19 +264,27 @@
         if(avmId){window.location.href='/avm?id='+avmId;return}
 
         if(isletmeId){
-            document.getElementById('yuklemeOverlay').classList.add('goster');
+            document.getElementById('hosgeldinOverlay').classList.add('goster');
             document.getElementById('anaSayfa').style.display='none';
             try{
                 const isletmeDoc=await db.collection('isletmeler').doc(isletmeId).get();
-                if(!isletmeDoc.exists){document.getElementById('yuklemeOverlay').classList.remove('goster');document.getElementById('anaSayfa').style.display='';return}
-                document.getElementById('yuklemeText').textContent=isletmeDoc.data().ad||'Yükleniyor...';
-                const oturumRef=await db.collection('oturumlar').add({isletmeId,isletmeAdi:isletmeDoc.data().ad||'',aktif:true,kod:null,sepet:[],olusturma:firebase.firestore.FieldValue.serverTimestamp()});
-                sonZiyaretKaydet(isletmeId,isletmeDoc.data().ad||'','isletme');
-                window.location.href='/musteri?oturum='+oturumRef.id+'&isletme='+isletmeId;
+                if(!isletmeDoc.exists){document.getElementById('hosgeldinAvm').textContent='İşletme bulunamadı';document.getElementById('hosgeldinHata').textContent='QR kodu geçersiz';document.getElementById('hosgeldinHata').style.display='block';return}
+                const isletmeData=isletmeDoc.data();
+                // AVM varsa AVM adıyla karşıla, yoksa işletme adıyla
+                let splashAd=isletmeData.ad||'';
+                if(isletmeData.avmId){
+                    try{const avmDoc=await db.collection('avmler').doc(isletmeData.avmId).get();if(avmDoc.exists&&avmDoc.data().ad)splashAd=avmDoc.data().ad}catch(e){}
+                }
+                document.getElementById('hosgeldinAvm').textContent=splashAd;
+                const oturumRef=await db.collection('oturumlar').add({isletmeId,isletmeAdi:isletmeData.ad||'',avmId:isletmeData.avmId||null,aktif:true,kod:null,sepet:[],olusturma:firebase.firestore.FieldValue.serverTimestamp()});
+                sonZiyaretKaydet(isletmeId,isletmeData.ad||'','isletme');
+                // 2.2 sn splash, sonra müşteri sayfasına yönlendir
+                setTimeout(()=>{window.location.href='/musteri?oturum='+oturumRef.id+'&isletme='+isletmeId+(isletmeData.avmId?'&avm='+isletmeData.avmId:'')},2200);
             }catch(e){
                 console.error('PRATİGO hata:',e);
-                document.getElementById('yuklemeText').textContent='Bağlantı hatası. Tekrar deneyin.';
-                document.querySelector('.spinner').style.borderTopColor='#ef4444';
+                document.getElementById('hosgeldinAvm').textContent='Bağlantı hatası';
+                document.getElementById('hosgeldinHata').textContent='Tekrar deneyin';
+                document.getElementById('hosgeldinHata').style.display='block';
             }
             return;
         }
