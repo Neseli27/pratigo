@@ -154,9 +154,82 @@
             color: #1e293b;
             font-size: 0.7rem;
         }
+
+        /* HOŞ GELDİNİZ OVERLAY */
+        .hosgeldin-overlay {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #0b1120 0%, #1e293b 100%);
+            z-index: 500;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease-out;
+        }
+        .hosgeldin-overlay.kapan { opacity: 0; pointer-events: none; }
+        .hosgeldin-icerik {
+            text-align: center;
+            padding: 40px 24px;
+            max-width: 600px;
+        }
+        .hosgeldin-logo {
+            width: 64px; height: 64px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 1.8rem; color: #fff;
+            margin: 0 auto 24px;
+            box-shadow: 0 8px 32px rgba(249,115,22,0.35);
+            animation: logoGiris 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+        }
+        .hosgeldin-avm {
+            font-size: 2.3rem; font-weight: 900;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #f97316, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.15;
+            animation: avmGiris 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+            opacity: 0;
+        }
+        .hosgeldin-mesaj {
+            font-size: 1.25rem; color: #cbd5e1; font-weight: 500;
+            margin-top: 4px;
+            animation: mesajGiris 0.5s ease-out 0.9s forwards;
+            opacity: 0;
+        }
+        .hosgeldin-badge {
+            margin-top: 28px;
+            font-size: 0.7rem; color: #475569;
+            letter-spacing: 3px; font-weight: 700;
+            animation: mesajGiris 0.5s ease-out 1.3s forwards;
+            opacity: 0;
+        }
+        @keyframes logoGiris {
+            from { opacity: 0; transform: scale(0.5) rotate(-12deg); }
+            to { opacity: 1; transform: scale(1) rotate(0); }
+        }
+        @keyframes avmGiris {
+            from { opacity: 0; transform: scale(0.8) translateY(16px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes mesajGiris {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
+
+    <!-- HOŞ GELDİNİZ OVERLAY -->
+    <div class="hosgeldin-overlay" id="hosgeldinOverlay">
+        <div class="hosgeldin-icerik">
+            <div class="hosgeldin-logo">P</div>
+            <div class="hosgeldin-avm" id="hosgeldinAvm">...</div>
+            <div class="hosgeldin-mesaj">Hoş Geldiniz</div>
+            <div class="hosgeldin-badge">PRATİGO</div>
+        </div>
+    </div>
 
     <div class="ust-alan">
         <div class="avm-adi" id="avmAdi">...</div>
@@ -189,14 +262,21 @@
         const params = new URLSearchParams(window.location.search);
         const avmId = params.get('id') || 'primemall';
 
-        // AVM bilgisini çek
+        // AVM bilgisini çek (header + hoş geldiniz overlay)
         db.collection('avmler').doc(avmId).get().then(doc => {
-            if (doc.exists) {
-                document.getElementById('avmAdi').textContent = doc.data().ad || 'AVM';
-            } else {
-                document.getElementById('avmAdi').textContent = 'Primemall AVM';
-            }
+            const ad = doc.exists ? (doc.data().ad || 'AVM') : 'Primemall AVM';
+            document.getElementById('avmAdi').textContent = ad;
+            document.getElementById('hosgeldinAvm').textContent = ad;
+        }).catch(() => {
+            document.getElementById('hosgeldinAvm').textContent = 'PRATİGO';
         });
+
+        // Hoş geldiniz overlay'i 2.2 sn sonra kapat (animasyon ~1.6 sn sürüyor)
+        setTimeout(() => {
+            const ov = document.getElementById('hosgeldinOverlay');
+            if (ov) ov.classList.add('kapan');
+            setTimeout(() => { if (ov) ov.style.display = 'none'; }, 500);
+        }, 2200);
 
         // İşletmeleri dinle (anlık güncelleme)
         db.collection('isletmeler')
