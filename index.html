@@ -286,8 +286,13 @@
             const arr=Array.from(sehirler).sort();
             if(arr.length===0){document.getElementById('sehirFiltre').style.display='none';return}
             document.getElementById('sehirFiltre').innerHTML=
-                '<button class="sehir-chip aktif" onclick="sehirSec(\'\')">Tümü</button>'+
-                arr.map(s=>'<button class="sehir-chip" onclick="sehirSec(\''+GH(s)+'\')">'+GH(s)+'</button>').join('');
+                '<button class="sehir-chip aktif" data-sehir="">Tümü</button>'+
+                arr.map(s=>'<button class="sehir-chip" data-sehir="'+GH(s)+'">'+GH(s)+'</button>').join('');
+            // Event delegation — bir kez kur, XSS'e karşı data-attr kullan
+            if(!window._sehirListenerEkli){
+                document.getElementById('sehirFiltre').addEventListener('click',e=>{const btn=e.target.closest('.sehir-chip');if(btn)sehirSec(btn.dataset.sehir||'')});
+                window._sehirListenerEkli=true;
+            }
         }
 
         window.sehirSec=function(s){
