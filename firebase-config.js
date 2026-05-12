@@ -16,3 +16,14 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+
+// === Faz 1: Otomatik anonim auth ===
+// Müşteri sayfalarında arka planda uid üretilir (kullanıcı görmez).
+// Kasiyer/admin sayfaları Faz 3-4'te kendi email/password Auth'larına geçecek;
+// o sayfalar signInWithEmailAndPassword çağırıp anonim oturumu üzerine yazar.
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        auth.signInAnonymously().catch(e => console.error('PRATİGO anonim auth hatası:', e));
+    }
+});
