@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pratigo-v9';
+const CACHE_NAME = 'pratigo-v10';
 const ASSETS = [
     '/',
     '/manifest.json',
