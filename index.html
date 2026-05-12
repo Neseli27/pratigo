@@ -253,29 +253,36 @@
         // Son ziyaretleri göster
         sonZiyaretCiz();
 
-        // AVM'leri çek
-        db.collection('avmler').get().then(snap=>{
+        // Tüm işletmeler cache'i — hem bağımsız mekanlar hem AVM sayımları için
+        let _tumIsletmelerCache=[];
+        function _avmSayimlariniHesapla(){
+            tumAvmler.forEach(avm=>{
+                let acik=0,toplam=0;
+                _tumIsletmelerCache.forEach(d=>{
+                    if(d.avmId===avm.id&&d.durum!=='askida'){toplam++;if(isletmeAcikMi(d))acik++}
+                });
+                avm._toplam=toplam;avm._acik=acik;
+            });
+        }
+
+        // AVM'leri canlı dinle
+        db.collection('avmler').onSnapshot(snap=>{
             tumAvmler=[];
             snap.forEach(doc=>tumAvmler.push({id:doc.id,...doc.data()}));
-            // Her AVM için işletme sayısını çek
-            const avmPromises=tumAvmler.map(avm=>
-                db.collection('isletmeler').where('avmId','==',avm.id).get().then(iSnap=>{
-                    let acik=0,toplam=0;
-                    iSnap.forEach(d=>{if(d.data().durum!=='askida'){toplam++;if(isletmeAcikMi(d.data()))acik++}});
-                    avm._toplam=toplam;avm._acik=acik;
-                })
-            );
-            Promise.all(avmPromises).then(()=>{sehirFiltreCiz();avmCiz()});
+            _avmSayimlariniHesapla();
+            sehirFiltreCiz();avmCiz();
         });
 
-        // Bağımsız mekanları çek (avmId olmayan)
-        db.collection('isletmeler').get().then(snap=>{
-            tumMekanlar=[];
+        // İşletmeleri canlı dinle (hem bağımsız mekanlar hem AVM sayımları)
+        db.collection('isletmeler').onSnapshot(snap=>{
+            _tumIsletmelerCache=[];tumMekanlar=[];
             snap.forEach(doc=>{
                 const d={id:doc.id,...doc.data()};
+                _tumIsletmelerCache.push(d);
                 if(!d.avmId&&d.durum!=='askida')tumMekanlar.push(d);
             });
-            mekanCiz();
+            _avmSayimlariniHesapla();
+            sehirFiltreCiz();avmCiz();mekanCiz();
         });
 
         // ===== ŞEHİR FİLTRE =====
