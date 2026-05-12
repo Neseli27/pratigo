@@ -15,7 +15,9 @@
         .header{padding:14px 16px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e293b;position:relative}
         .header .ikon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;flex-shrink:0}
         .header .bilgi{flex:1;min-width:0}.header .isletme-adi{font-size:17px;font-weight:800}.header .alt-bilgi{font-size:12px;color:#64748b;margin-top:1px}.header .alt-bilgi .acik{color:#22c55e}
-        .header .btn-geri{width:32px;height:32px;border-radius:50%;background:#334155;border:none;color:#94a3b8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;position:absolute;left:16px;top:50%;transform:translateY(-50%)}
+        .header .btn-geri{width:38px;height:38px;border-radius:10px;background:#1e293b;border:1.5px solid #334155;color:#cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;position:absolute;left:14px;top:50%;transform:translateY(-50%);transition:all .15s;-webkit-tap-highlight-color:transparent}
+        .header .btn-geri:active{background:#334155;border-color:#f97316;color:#f97316;transform:translateY(-50%) scale(.94)}
+        .header .btn-geri svg{width:18px;height:18px}
         .header .btn-bilgi{width:32px;height:32px;border-radius:50%;background:#334155;border:none;color:#94a3b8;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
         .kapali-banner{margin:12px 14px;padding:14px;background:#1e293b;border:2px solid #ef4444;border-radius:12px;text-align:center;display:none}.kapali-banner h3{color:#ef4444;font-size:14px;margin-bottom:4px}.kapali-banner p{color:#94a3b8;font-size:12px}
         .kategori-chips{display:flex;gap:6px;padding:10px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}.kategori-chips::-webkit-scrollbar{display:none}
@@ -100,7 +102,7 @@
 </head>
 <body>
     <div class="header" id="headerAlani">
-        <button class="btn-geri" onclick="cikisYap()" title="Çıkış">←</button>
+        <button class="btn-geri" onclick="cikisYap()" title="Ana sayfaya dön" aria-label="Ana sayfaya dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>
         <div style="width:36px"></div>
         <div class="ikon" id="isletmeIkon">P</div>
         <div class="bilgi">
