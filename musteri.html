@@ -116,7 +116,7 @@
     <script>
         const params=new URLSearchParams(window.location.search);const oturumId=params.get('oturum');const isletmeId=params.get('isletme');const avmId=params.get('avm');
         if(!oturumId||!isletmeId){document.body.innerHTML='<div style="text-align:center;padding:60px 20px;color:#ef4444;font-size:1.2rem">Geçersiz oturum. QR kodu tekrar okutun.</div>';throw new Error('Gecersiz oturum: scripts durduruldu')}
-        function cikisYap(){if(oturumId){db.collection('oturumlar').doc(oturumId).update({aktif:false}).catch(()=>{})}const h=avmId||(isletmeVerisi&&isletmeVerisi.avmId);if(h){window.location.href='/avm?id='+h}else{window.location.href='/'}}
+        async function cikisYap(){if(sepet&&sepet.length>0){if(!await onayGoster('Sepetinizdeki ürünler kaybolacak. Çıkmak istediğinize emin misiniz?'))return}if(oturumId){db.collection('oturumlar').doc(oturumId).update({aktif:false}).catch(()=>{})}const h=avmId||(isletmeVerisi&&isletmeVerisi.avmId);if(h){window.location.href='/avm?id='+h}else{window.location.href='/'}}
         let sepet=[],menuVerisi=[],oturumVerisi={},isletmeVerisi={},aktifSiparisId=null,kodUretildi=false,isletmeAcik=true,aktifKategori='';
         const _sonSesDurum={};function _sesDurumGrubu(d){if(d==='onaylandi'||d==='odeme_bekliyor')return 'odeme';return d}
 
