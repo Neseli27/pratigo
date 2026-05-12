@@ -69,6 +69,8 @@
         .ozet-kart.bekleyen .deger{color:#eab308}
         .ozet-kart.odeme .deger{color:#3b82f6}
         .ozet-kart.mutfak .deger{color:#f97316}
+        .ozet-kart.teslim-bekleyen .deger{color:#a855f7}
+        .ozet-kart.teslim-edildi .deger{color:#22c55e}
 
         .kuyruk-bolum{margin-bottom:20px}
         .kuyruk-bolum-baslik{font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-left:2px}
@@ -76,6 +78,10 @@
         .siparis-kart.beklemede-kart{border-left:3px solid #eab308}
         .siparis-kart.odeme-kart{border-left:3px solid #3b82f6}
         .siparis-kart.mutfak-kart{border-left:3px solid #f97316}
+        .siparis-kart.hazir-kart{border-left:3px solid #a855f7;animation:teslimPulse 2s infinite}
+        .siparis-kart.teslim-kart{border-left:3px solid #22c55e;opacity:.8}
+        @keyframes teslimPulse{0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,.4)}50%{box-shadow:0 0 0 6px rgba(168,85,247,0)}}
+        .teslim-tik{color:#22c55e;font-weight:800;font-size:.9rem;display:inline-flex;align-items:center;gap:4px}
         .siparis-ust{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
         .siparis-kod{font-size:1.3rem;font-weight:900;color:#f97316}
         .siparis-toplam{font-weight:800;color:#22c55e;font-size:.95rem}
@@ -230,10 +236,14 @@
             <div class="ozet-kart bekleyen"><div class="deger" id="bekleyenSayisi">0</div><div class="etiket">Bekleyen</div></div>
             <div class="ozet-kart odeme"><div class="deger" id="odemeSayisi">0</div><div class="etiket">Ödeme bekliyor</div></div>
             <div class="ozet-kart mutfak"><div class="deger" id="mutfakSayisi">0</div><div class="etiket">Mutfakta</div></div>
+            <div class="ozet-kart teslim-bekleyen"><div class="deger" id="teslimBekleyenSayisi">0</div><div class="etiket">Teslim bekliyor</div></div>
+            <div class="ozet-kart teslim-edildi"><div class="deger" id="teslimEdildiSayisi">0</div><div class="etiket">Bugün teslim</div></div>
         </div>
         <div class="kuyruk-bolum"><div class="kuyruk-bolum-baslik">BEKLEYEN SİPARİŞLER (Müşteriden gelen)</div><div id="bekleyenKuyrugu"><div class="bos-kuyruk">Bekleyen sipariş yok</div></div></div>
         <div class="kuyruk-bolum"><div class="kuyruk-bolum-baslik">ÖDEME BEKLEYENLER</div><div id="odemeKuyrugu"><div class="bos-kuyruk">Ödeme bekleyen sipariş yok</div></div></div>
         <div class="kuyruk-bolum"><div class="kuyruk-bolum-baslik">MUTFAKTA</div><div id="mutfakKuyrugu"><div class="bos-kuyruk">Mutfakta sipariş yok</div></div></div>
+        <div class="kuyruk-bolum"><div class="kuyruk-bolum-baslik">HAZIR — MÜŞTERİ TESLİM ALIYOR</div><div id="teslimBekleyenKuyrugu"><div class="bos-kuyruk">Teslim bekleyen sipariş yok</div></div></div>
+        <div class="kuyruk-bolum"><div class="kuyruk-bolum-baslik">BUGÜN TESLİM EDİLENLER (00:00'da temizlenir)</div><div id="teslimEdildiKuyrugu"><div class="bos-kuyruk">Bugün teslim edilen sipariş yok</div></div></div>
     </div>
 
     <!-- MENÜ -->
@@ -347,9 +357,17 @@
                 let ilk=true;
                 _unsubSiparis=db.collection('siparisler').where('isletmeId','==',isletmeId).where('olusturma','>=',bg)
                     .onSnapshot(snap=>{
-                        const durumlar=['beklemede','onaylandi','odeme_bekliyor','hazirlaniyor'];
-                        const f=[];snap.forEach(doc=>{if(durumlar.includes(doc.data().durum))f.push(doc)});
-                        if(!ilk){snap.docChanges().forEach(ch=>{if(ch.type==='added'&&durumlar.includes(ch.doc.data().durum))kasiyerBildirimSesi()})}
+                        const aktifDurumlar=['beklemede','onaylandi','odeme_bekliyor','hazirlaniyor','hazir'];
+                        const bugun=new Date();bugun.setHours(0,0,0,0);const bugunMs=bugun.getTime();
+                        const f=[];snap.forEach(doc=>{
+                            const d=doc.data();
+                            if(aktifDurumlar.includes(d.durum)){f.push(doc)}
+                            else if(d.durum==='teslim_edildi'){
+                                const t=d.teslimZaman&&d.teslimZaman.toMillis?d.teslimZaman.toMillis():(d.olusturma&&d.olusturma.toMillis?d.olusturma.toMillis():0);
+                                if(t>=bugunMs)f.push(doc);
+                            }
+                        });
+                        if(!ilk){snap.docChanges().forEach(ch=>{if(ch.type==='added'&&aktifDurumlar.includes(ch.doc.data().durum))kasiyerBildirimSesi();if(ch.type==='modified'&&ch.doc.data().durum==='teslim_edildi')kasiyerBildirimSesi()})}
                         ilk=false;
                         kuyrukCiz({forEach:cb=>f.forEach(d=>cb(d))});
                     });
@@ -380,14 +398,18 @@
 
         // KUYRUK
         function kuyrukCiz(snap){
-            const bekleyenList=[],odemeList=[],mutfakList=[];
-            snap.forEach(doc=>{const d={id:doc.id,...doc.data()};if(d.durum==='beklemede')bekleyenList.push(d);else if(d.durum==='onaylandi'||d.durum==='odeme_bekliyor')odemeList.push(d);else if(d.durum==='hazirlaniyor')mutfakList.push(d)});
-            const toplamAktif=bekleyenList.length+odemeList.length+mutfakList.length;
+            const bekleyenList=[],odemeList=[],mutfakList=[],hazirList=[],teslimList=[];
+            snap.forEach(doc=>{const d={id:doc.id,...doc.data()};if(d.durum==='beklemede')bekleyenList.push(d);else if(d.durum==='onaylandi'||d.durum==='odeme_bekliyor')odemeList.push(d);else if(d.durum==='hazirlaniyor')mutfakList.push(d);else if(d.durum==='hazir')hazirList.push(d);else if(d.durum==='teslim_edildi')teslimList.push(d)});
+            // En yeni en üstte
+            teslimList.sort((a,b)=>((b.teslimZaman&&b.teslimZaman.toMillis&&b.teslimZaman.toMillis())||0)-((a.teslimZaman&&a.teslimZaman.toMillis&&a.teslimZaman.toMillis())||0));
+            const toplamAktif=bekleyenList.length+odemeList.length+mutfakList.length+hazirList.length;
             const badge=document.getElementById('kuyrukBadge');badge.textContent=toplamAktif;badge.classList.toggle('goster',toplamAktif>0);
             document.getElementById('topDurum').textContent=toplamAktif>0?'Açık · '+toplamAktif+' aktif sipariş':'Açık · sipariş bekleniyor';
             document.getElementById('bekleyenSayisi').textContent=bekleyenList.length;
             document.getElementById('odemeSayisi').textContent=odemeList.length;
             document.getElementById('mutfakSayisi').textContent=mutfakList.length;
+            document.getElementById('teslimBekleyenSayisi').textContent=hazirList.length;
+            document.getElementById('teslimEdildiSayisi').textContent=teslimList.length;
 
             // BEKLEYENLER (müşteriden gelen, onay bekliyor)
             const bekEl=document.getElementById('bekleyenKuyrugu');
@@ -436,6 +458,27 @@
                     <div class="ilerleme-cubuk"><div class="ilerleme-ic" data-mutfak-bar style="width:${pct}%"></div></div>
                     <div class="kalan-sure" data-mutfak-kalan>${kalanTxt}</div>
                     <button class="btn-hazir" onclick="hazirIsaretle('${s.id}')">HAZIR</button>
+                </div>`}).join('');
+
+            // HAZIR — MÜŞTERİ TESLİM ALMAYI BEKLİYOR
+            const hazirEl=document.getElementById('teslimBekleyenKuyrugu');
+            hazirEl.innerHTML=hazirList.length===0?'<div class="bos-kuyruk">Teslim bekleyen sipariş yok</div>':hazirList.map(s=>`
+                <div class="siparis-kart hazir-kart">
+                    <div class="siparis-ust"><span class="mutfak-sira" style="color:#a855f7">${GH(s.siraNo)||'?'}</span><div class="mutfak-kod-toplam"><span>Kod: ${formatKod(s.musteriKod)}</span><span style="color:#f97316;font-weight:700;margin-left:8px">${s.toplam} ₺</span></div></div>
+                    <div class="siparis-urunler">${(s.urunler||[]).map(u=>GH(u.ad)+' ×'+u.adet).join(', ')}</div>
+                    ${s.not?'<div class="siparis-not">📝 '+GH(s.not)+'</div>':''}
+                    <div style="color:#a855f7;font-size:.82rem;margin-top:6px;font-weight:600">⏳ Müşteri teslim alıyor...</div>
+                </div>`).join('');
+
+            // BUGÜN TESLİM EDİLENLER
+            const teslimEl=document.getElementById('teslimEdildiKuyrugu');
+            teslimEl.innerHTML=teslimList.length===0?'<div class="bos-kuyruk">Bugün teslim edilen sipariş yok</div>':teslimList.map(s=>{
+                const saat=s.teslimZaman&&s.teslimZaman.toDate?new Date(s.teslimZaman.toDate()).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'';
+                const yildiz=s.puan?Array(5).fill(0).map((_,i)=>'<span style="color:'+(i<s.puan?'#eab308':'#334155')+';font-size:.85rem">★</span>').join(''):'';
+                return `<div class="siparis-kart teslim-kart">
+                    <div class="siparis-ust"><span class="mutfak-sira" style="color:#22c55e">${GH(s.siraNo)||'?'}</span><div class="mutfak-kod-toplam"><span class="teslim-tik">✓ Teslim alındı</span>${saat?'<span style="color:#64748b;font-size:.75rem;margin-left:6px">'+saat+'</span>':''}<span style="color:#f97316;font-weight:700;margin-left:8px">${s.toplam} ₺</span></div></div>
+                    <div class="siparis-urunler">${(s.urunler||[]).map(u=>GH(u.ad)+' ×'+u.adet).join(', ')}</div>
+                    ${yildiz?'<div style="margin-top:4px">'+yildiz+'</div>':''}
                 </div>`}).join('');
         }
 
