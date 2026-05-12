@@ -117,7 +117,8 @@
         let sepet=[],menuVerisi=[],oturumVerisi={},isletmeVerisi={},aktifSiparisId=null,kodUretildi=false,isletmeAcik=true,aktifKategori='';
         const _sonSesDurum={};function _sesDurumGrubu(d){if(d==='onaylandi'||d==='odeme_bekliyor')return 'odeme';return d}
 
-        db.collection('oturumlar').doc(oturumId).onSnapshot(doc=>{if(!doc.exists)return;oturumVerisi=doc.data()});
+        let _sepetYuklendi=false;
+        db.collection('oturumlar').doc(oturumId).onSnapshot(doc=>{if(!doc.exists)return;oturumVerisi=doc.data();if(!_sepetYuklendi){if(Array.isArray(oturumVerisi.sepet)&&oturumVerisi.sepet.length){sepet=oturumVerisi.sepet.map(s=>({...s}));sepetGuncelle()}if(oturumVerisi.kod){kodUretildi=true}_sepetYuklendi=true}});
 
         db.collection('isletmeler').doc(isletmeId).onSnapshot(doc=>{if(!doc.exists)return;isletmeVerisi=doc.data();document.getElementById('isletmeAdi').textContent=isletmeVerisi.ad||'';document.getElementById('isletmeIkon').textContent=(isletmeVerisi.ad||'P').charAt(0).toUpperCase();calismaSaatiKontrol();kategoriChipsCiz();menuCiz()});
 
