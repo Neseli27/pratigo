@@ -333,15 +333,26 @@
             db.collection('isletmeler').doc(isletmeId).collection('menu').orderBy('sira','asc').onSnapshot(snap=>{menuVerisi=[];snap.forEach(doc=>menuVerisi.push({id:doc.id,...doc.data()}));kasiyerMenuCiz();menuListeCiz()});
 
             // Siparişleri dinle — beklemede DAHİL
-            let ilk=true;const bg=new Date();bg.setHours(0,0,0,0);
-            db.collection('siparisler').where('isletmeId','==',isletmeId).where('olusturma','>=',bg)
-                .onSnapshot(snap=>{
-                    const durumlar=['beklemede','onaylandi','odeme_bekliyor','hazirlaniyor'];
-                    const f=[];snap.forEach(doc=>{if(durumlar.includes(doc.data().durum))f.push(doc)});
-                    if(!ilk){snap.docChanges().forEach(ch=>{if(ch.type==='added'&&durumlar.includes(ch.doc.data().durum))kasiyerBildirimSesi()})}
-                    ilk=false;
-                    kuyrukCiz({forEach:cb=>f.forEach(d=>cb(d))});
-                });
+            // 7 gün sliding window: gece yarısı sayfası açık kalsa bile listener gün kaydığında
+            // yeniden bind olur, dünden kalan yarım siparişler de kaybolmaz (7 gün geriden çeker).
+            let _unsubSiparis=null,_aktifBaslangicMs=0;
+            function _kuyrukBaslangic(){const d=new Date();d.setDate(d.getDate()-7);d.setHours(0,0,0,0);return d}
+            function _siparisleriDinle(){
+                if(_unsubSiparis){try{_unsubSiparis()}catch(e){}}
+                const bg=_kuyrukBaslangic();_aktifBaslangicMs=bg.getTime();
+                let ilk=true;
+                _unsubSiparis=db.collection('siparisler').where('isletmeId','==',isletmeId).where('olusturma','>=',bg)
+                    .onSnapshot(snap=>{
+                        const durumlar=['beklemede','onaylandi','odeme_bekliyor','hazirlaniyor'];
+                        const f=[];snap.forEach(doc=>{if(durumlar.includes(doc.data().durum))f.push(doc)});
+                        if(!ilk){snap.docChanges().forEach(ch=>{if(ch.type==='added'&&durumlar.includes(ch.doc.data().durum))kasiyerBildirimSesi()})}
+                        ilk=false;
+                        kuyrukCiz({forEach:cb=>f.forEach(d=>cb(d))});
+                    });
+            }
+            _siparisleriDinle();
+            if(window._gunKontrol)clearInterval(window._gunKontrol);
+            window._gunKontrol=setInterval(()=>{if(_kuyrukBaslangic().getTime()>_aktifBaslangicMs)_siparisleriDinle()},60000);
             document.getElementById('raporTarih').value=new Date().toISOString().split('T')[0];raporYukle();
         }
 
